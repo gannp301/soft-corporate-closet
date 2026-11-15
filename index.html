@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Soft Corporate Closet</title>
+  <meta name="description" content="Shop the look: a personal digital fashion board for cute Gen Z office outfits.">
+  <meta name="theme-color" content="#fff3f7">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%80%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+
+  <header class="top">
+    <a class="brand" href="#home" aria-label="Soft Corporate Closet home">
+      <span class="brand-bow" aria-hidden="true">🎀</span>
+      <span>Soft Corporate <em>Closet</em></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#home" data-nav="home"><span aria-hidden="true">⌂</span>Home</a>
+      <a href="#browse" data-nav="browse"><span aria-hidden="true">▦</span>Browse</a>
+      <a href="#shuffle" data-nav="shuffle"><span aria-hidden="true">⟳</span>Shuffle</a>
+      <a href="#saved" data-nav="saved"><span aria-hidden="true">♡</span>Saved</a>
+      <a href="#owned" data-nav="owned"><span aria-hidden="true">✓</span>Owned</a>
+      <a href="#dna" data-nav="dna"><span aria-hidden="true">✦</span>Style DNA</a>
+    </nav>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <footer class="foot">
+    <p>Soft Corporate Closet · a personal shop-the-look board <span aria-hidden="true">♡</span></p>
+    <p class="small">Prices are estimates. Links open the store in a new tab.</p>
+  </footer>
+
+  <dialog id="sheet" aria-labelledby="sheet-title"></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <noscript><p style="padding:2rem">Soft Corporate Closet needs JavaScript to run.</p></noscript>
+  <script src="data/items.js"></script>
+  <script src="data/outfits.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
