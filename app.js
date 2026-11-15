@@ -1,7 +1,7 @@
 /* Soft Corporate Closet — app logic (vanilla JS, no build step) */
 (function () {
   'use strict';
-  const { RETAILERS, PALETTE, MOODS, FORMALITY, FIT_TAGS, CATEGORIES, PRODUCTS, LOOKS } = window.SCC;
+  const { RETAILERS, PALETTE, OCCASIONS, VIBES, COLOR_GROUPS, COLLECTIONS, CATEGORIES, PRODUCTS, LOOKS } = window.SCC;
   const $ = (s, r = document) => r.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const byId = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
@@ -13,7 +13,7 @@
 
   /* ---------------- saved state (localStorage) — kept separate from product/look data ---------------- */
   const KEY = 'scc.v1';   // same key as V1 so saved looks carry over
-  const DEFAULTS = { v: 2, saved: [], savedProducts: [], recent: [], filters: {}, custom: [], mode: 'looks' };
+  const DEFAULTS = { v: 3, saved: [], savedProducts: [], recent: [], filters: {}, custom: [], mode: 'looks' };
   let S;
   try { S = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { S = Object.assign({}, DEFAULTS); }
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode: state lives in memory */ } };
@@ -26,9 +26,16 @@
     S.saved = [...new Set(arr(S.saved).map(id => LEGACY[id] || id))].filter(getLook);
     S.recent = [...new Set(arr(S.recent).map(id => LEGACY[id] || id))].filter(getLook);
     S.savedProducts = arr(S.savedProducts).filter(id => byId[id]);
-    if (S.v !== 2) S.filters = {};
+    const MOOD_MAP = { 'winter-kiss': ['everyday', 'cute'], 'soft-corporate': ['everyday', 'sleek'], 'baddie-lite': ['everyday', 'sleek'], 'cold': ['everyday', 'cozy'], 'cute-polished': ['everyday', 'cute'], 'friday': ['friday', 'cute'] };
+    S.custom.forEach(o => {                                      // V2 remixes stored a mood + formality: map to occasion + vibe
+      if (o.occasions) return;
+      const m = MOOD_MAP[(o.moods || [])[0]] || ['everyday', 'cute'];
+      o.occasions = [o.formality === 'meeting' ? 'meeting' : m[0]]; o.blurb = 'Your own shuffle.'; o.vibe = m[1];
+      delete o.moods; delete o.formality;
+    });
+    if (S.v !== 3) S.filters = {};                               // filter groups changed
     delete S.owned; delete S.preferOwned; delete S.filtersOpen;  // closet tracking removed in V2
-    S.v = 2; persist();
+    S.v = 3; persist();
   })();
   const isSaved = id => S.saved.includes(id);
   const isSavedP = id => S.savedProducts.includes(id);
@@ -81,15 +88,16 @@
   const retailerMix = ps => [...new Set(ps.map(p => storeName(p.retailer)))].join(' + ');
 
   /* ---------------- cards ---------------- */
+  const kicker = o => (o.custom ? 'Your remix' : o.collection && COLLECTIONS[o.collection] ? COLLECTIONS[o.collection].kicker : OCCASIONS[(o.occasions || [])[0]] || 'Look');
   function lookCard(o, compact) {
     const ps = lookProducts(o);
     return `<article class="look ${compact ? 'compact' : ''}">
       ${heartBtn('save', o.id, isSaved(o.id), o.name)}
       <button class="look-img" data-act="view" data-id="${o.id}" aria-label="View ${esc(o.name)}">${mosaic(ps)}</button>
       <div class="look-body">
-        <p class="eyebrow">${esc((MOODS[o.moods[0]] || {}).label || 'Remix')}${o.custom ? ' · your remix' : ''}</p>
+        <p class="eyebrow">${esc(kicker(o))}</p>
         <h3>${esc(o.name)}</h3>
-        ${compact ? '' : `<p class="vibe">${esc(o.vibe || '')}</p>`}
+        ${compact ? '' : `<p class="vibe">${esc(o.blurb || '')}</p>`}
         <p class="meta">${priceLine(o)}</p>
         ${compact ? '' : `<p class="meta">${esc(retailerMix(ps))}${(o.suggestions || []).length ? ' · plus styling suggestions' : ''}</p>
         <div class="btns"><button class="btn primary" data-act="view" data-id="${o.id}">View / Shop Look</button>${saveBtn(o)}</div>`}
@@ -122,23 +130,21 @@
   const usedColors = Object.keys(PALETTE).filter(k => PRODUCTS.some(p => p.color === k));
   const usedStores = Object.keys(RETAILERS).filter(k => PRODUCTS.some(p => p.retailer === k));
   const GROUPS = [
-    ['mood', 'Mood', Object.keys(MOODS).map(k => [k, MOODS[k].label])],
     ['store', 'Store', usedStores.map(k => [k, RETAILERS[k].name])],
     ['category', 'Category', Object.entries(CATEGORIES)],
     ['color', 'Color', usedColors.map(k => [k, PALETTE[k].name])],
-    ['formality', 'Formality', FORMALITY.map(f => [f.id, f.label])],
-    ['fit', 'Fit', Object.entries(FIT_TAGS)]
+    ['occasion', 'Occasion', Object.entries(OCCASIONS)]
   ];
   const sel = g => S.filters[g] || [];
   const activeCount = () => GROUPS.reduce((n, g) => n + sel(g[0]).length, 0);
   const any = (a, b) => !a.length || a.some(x => b.includes(x));
   function lookMatches(o) {
     const ps = lookProducts(o);
-    return any(sel('mood'), o.moods) && any(sel('store'), ps.map(p => p.retailer)) && any(sel('category'), ps.map(p => p.category)) &&
-      any(sel('color'), ps.map(p => p.color)) && any(sel('formality'), [o.formality]) && any(sel('fit'), ps.flatMap(p => p.fit));
+    return any(sel('store'), ps.map(p => p.retailer)) && any(sel('category'), ps.map(p => p.category)) &&
+      any(sel('color'), ps.map(p => p.color)) && any(sel('occasion'), o.occasions || []);
   }
-  const productMatches = p => any(sel('mood'), p.moods) && any(sel('store'), [p.retailer]) && any(sel('category'), [p.category]) &&
-    any(sel('color'), [p.color]) && any(sel('formality'), p.formality) && any(sel('fit'), p.fit);
+  const productMatches = p => any(sel('store'), [p.retailer]) && any(sel('category'), [p.category]) &&
+    any(sel('color'), [p.color]) && any(sel('occasion'), p.occasions);
   function chip(group, id, label) {
     const on = sel(group).includes(id);
     return `<button class="chip ${on ? 'on' : ''}" data-act="filter" data-group="${group}" data-value="${id}" aria-pressed="${on}">${group === 'color' ? `<i class="dot" style="background:${PALETTE[id].hex}"></i>` : ''}${esc(label)}</button>`;
@@ -151,41 +157,49 @@
       <div class="drawer-foot"><button class="btn" data-act="clear">Clear all</button><button class="btn primary" data-act="close-drawer">Show ${n} ${S.mode === 'pieces' ? 'piece' : 'look'}${n === 1 ? '' : 's'}</button></div>`;
   }
 
-  /* ---------------- shuffle engine (Soft Winter logic, verified products only) ---------------- */
+  /* ---------------- shuffle engine ----------------
+     Soft Winter color logic and fit preferences (petite, waist-defining, feminine) are applied
+     automatically. Only verified products are used; everything else is a styling suggestion. */
   const ROLES = ['top', 'bottom', 'shoes'];
   const ROLE_LABEL = { top: 'Top', bottom: 'Bottom', shoes: 'Shoes' };
   const roleOf = p => ({ tops: 'top', bottoms: 'bottom', shoes: 'shoes' })[p.category];
-  const fIdx = id => Math.max(0, FORMALITY.findIndex(f => f.id === id));
   const isMini = p => /mini/i.test(p.name) && p.category === 'bottoms';
-
-  function score(p, ctx) {
-    if (!p.formality.some(f => Math.abs(fIdx(f) - ctx.f) <= 1)) return -1e9;      // keep the dress code compatible
-    let s = Math.random() * 2.5;
-    if (p.moods.includes(ctx.mood)) s += 3;
-    if (p.formality.includes(FORMALITY[ctx.f].id)) s += 2;
-    if (ctx.color && p.color === ctx.color) s += 5;                               // optional color preference
-    if (p.pattern && ctx.chosen.some(c => c.pattern)) s -= 6;                     // one pattern at a time
-    s += { excellent: 0.8, good: 0.3 }[p.softWinter.rating] || 0;                 // lean toward the best Soft Winter colors
-    return s;
-  }
-  function pick(role, ctx, avoid) {
-    let c = PRODUCTS.filter(p => roleOf(p) === role).map(p => [score(p, ctx), p]).filter(x => x[0] > -1e8);
-    if (c.length > 1) c = c.filter(x => x[1].id !== avoid);
-    c.sort((a, b) => b[0] - a[0]);
-    return c.length ? c[0][1] : null;
-  }
-  function build(keep, prev) {
-    const ctx = { mood: R.mood, f: fIdx(rFormality()), color: R.color, chosen: Object.values(keep).map(id => byId[id]).filter(Boolean) };
-    const out = Object.assign({}, keep);
-    ROLES.forEach(r => { if (out[r]) return; const p = pick(r, ctx, prev[r]); if (p) { out[r] = p.id; ctx.chosen.push(p); } });
+  const R = { occasion: 'everyday', vibe: 'surprise', color: 'any', slots: null, locks: {}, from: '', savedId: '', usedVibe: 'cute', relaxed: '', shown: {}, tick: 0 };
+  const comboKey = c => ROLES.map(r => c[r] || '').join('|');
+  const ALL_COMBOS = (() => {
+    const by = r => PRODUCTS.filter(p => roleOf(p) === r), out = [];
+    by('top').forEach(t => by('bottom').forEach(b => by('shoes').forEach(sh => out.push({ top: t.id, bottom: b.id, shoes: sh.id }))));
     return out;
+  })();
+  function generate() {
+    const locked = ROLES.filter(r => R.locks[r] && R.slots && R.slots[r]);
+    const vibes = Object.keys(VIBES);
+    const vibe = R.vibe === 'surprise' ? vibes[Math.floor(Math.random() * vibes.length)] : R.vibe;
+    const grp = COLOR_GROUPS[R.color];
+    const ps = c => ROLES.map(r => byId[c[r]]);
+    const okLock = c => locked.every(r => c[r] === R.slots[r]);
+    const okPattern = c => ps(c).filter(p => p.pattern).length <= 1;                                       // one pattern at a time
+    const okOccasion = c => ROLES.every(r => locked.includes(r) || byId[c[r]].occasions.includes(R.occasion)); // no off-dress-code pieces
+    const okColor = c => !grp || ps(c).some(p => grp.colors.includes(p.color));
+    const tiers = [[okLock, okPattern, okOccasion, okColor, ''], [okLock, okPattern, okOccasion, 'color'], [okLock, okPattern, 'occasion'], [okLock, 'pattern']];
+    let pool = [], relaxed = '';
+    for (const t of tiers) { relaxed = t[t.length - 1]; pool = ALL_COMBOS.filter(c => t.slice(0, -1).every(f => f(c))); if (pool.length) break; }
+    if (!pool.length) return;
+    const shown = c => R.shown[comboKey(c)] || 0;                                                          // least recently shown first:
+    const oldest = Math.min.apply(null, pool.map(shown));                                                  // never repeats while other valid outfits exist
+    const fresh = pool.filter(c => shown(c) === oldest);
+    const score = c => ps(c).reduce((n, p) => n + (p.vibes.includes(vibe) ? 2 : 0) + ({ excellent: 1, good: 0.5 }[p.softWinter.rating] || 0) +
+      (p.fit.includes('waist') ? 0.6 : 0) + (p.fit.includes('petite') ? 0.4 : 0) + (p.fit.includes('feminine') ? 0.2 : 0) +
+      (grp && grp.colors.includes(p.color) ? 1 : 0), Math.random() * 3);
+    const best = fresh.map(c => [score(c), c]).sort((a, b) => b[0] - a[0])[0][1];
+    R.slots = Object.assign({}, best); R.shown[comboKey(best)] = ++R.tick; R.usedVibe = vibe; R.relaxed = relaxed; R.savedId = '';
   }
   /* styling suggestions are ideas only: never priced, never linked */
-  function suggest(ps, mood) {
+  function suggest(ps, occasion) {
     const top = ps.find(p => p.category === 'tops'), bottom = ps.find(p => p.category === 'bottoms'), out = [];
-    if (bottom && isMini(bottom)) out.push({ type: 'tights', label: mood === 'cold' || mood === 'winter-kiss' ? 'Opaque soft-black or charcoal tights' : 'Sheer soft-black tights' });
+    if (bottom && isMini(bottom)) out.push({ type: 'tights', label: 'Sheer or opaque soft-black tights' });
     if (bottom && !isMini(bottom)) out.push({ type: 'boots', label: 'Sleek black ankle boots as a colder-day swap' });
-    if (mood === 'friday') out.push({ type: 'shoes', label: 'Pink Dr. Martens for a Friday swap' });
+    if (occasion === 'friday') out.push({ type: 'denim', label: 'High-waisted straight-leg jeans as a denim swap' }, { type: 'shoes', label: 'Pink Dr. Martens as a shoe swap' });
     const metal = !top ? 'gold, white-gold or rose-gold' : top.color === 'burgundy' ? 'gold' : top.color === 'sky-blue' ? 'white-gold' : 'rose-gold or white-gold';
     out.push({ type: 'jewelry', label: `Delicate ${metal} jewelry` });
     out.push({ type: 'bag', label: top && top.color === 'burgundy' ? 'Small soft-black shoulder bag' : 'Cool burgundy or charcoal shoulder bag' });
@@ -195,28 +209,17 @@
     const top = ps.find(p => p.category === 'tops'), bottom = ps.find(p => p.category === 'bottoms');
     const waist = ps.find(p => p.fit.includes('waist'));
     return (top && bottom ? `${color(top.color).name} over ${color(bottom.color).name.toLowerCase()} stays cool and moderate in contrast, which is the Soft Winter brief. ` : '') +
-      (waist ? `The ${shortName(waist).toLowerCase()} gives you waist definition. ` : 'Tuck the top to keep your waist defined. ') +
+      (waist ? `Waist definition comes from the ${shortName(waist)}. ` : 'Tuck the top to keep your waist defined. ') +
       (bottom && isMini(bottom) ? 'A short hem keeps a petite frame long; add tights for the office.' : 'A long, unbroken line below the waist lengthens a petite frame.');
-  }
-  const R = { mood: 'cute-polished', formality: 'auto', color: '', slots: null, locks: {}, from: '', savedId: '' };
-  const rFormality = () => (R.formality === 'auto' ? (MOODS[R.mood] || {}).formality || 'polished' : R.formality);
-  function shuffleAll() {
-    const keep = {};
-    if (R.slots) ROLES.forEach(r => { if (R.locks[r] && R.slots[r]) keep[r] = R.slots[r]; });
-    R.slots = build(keep, R.slots || {}); R.savedId = '';
-  }
-  function swapOne(role) { const keep = Object.assign({}, R.slots); delete keep[role]; R.slots = build(keep, R.slots); R.savedId = ''; }
-  function surprise() {
-    const moods = Object.keys(MOODS).filter(m => m !== R.mood);
-    R.mood = moods[Math.floor(Math.random() * moods.length)]; R.formality = 'auto'; R.color = ''; R.locks = {}; R.from = '';
-    shuffleAll();
   }
   function remixLook(o) {
     const slots = {};
     lookProducts(o).forEach(p => { const r = roleOf(p); if (r && !slots[r]) slots[r] = p.id; });
-    R.mood = MOODS[o.moods[0]] ? o.moods[0] : R.mood; R.formality = o.formality || 'auto'; R.color = ''; R.locks = {}; R.from = o.name;
-    const roles = Object.keys(slots), keepRole = roles[Math.floor(Math.random() * roles.length)];   // keep one piece so it stays "similar"
-    R.slots = build(keepRole ? { [keepRole]: slots[keepRole] } : {}, slots); R.savedId = '';
+    const roles = Object.keys(slots), keep = roles[Math.floor(Math.random() * roles.length)];   // keep one piece so it stays "similar"
+    R.occasion = OCCASIONS[(o.occasions || [])[0]] ? o.occasions[0] : 'everyday'; R.vibe = VIBES[o.vibe] ? o.vibe : 'surprise'; R.color = 'any';
+    R.slots = slots; R.locks = keep ? { [keep]: true } : {}; R.from = o.name;
+    R.shown[comboKey(slots)] = ++R.tick;
+    generate();
   }
 
   /* ---------------- views ---------------- */
@@ -226,8 +229,8 @@
     return `<section class="feature ${flip ? 'flip' : ''}" aria-label="${esc(o.name)}">
       <button class="feature-img" data-act="view" data-id="${o.id}" aria-label="View ${esc(o.name)}">${mosaic(ps)}</button>
       <div class="feature-text">
-        <p class="eyebrow">${esc(MOODS[o.moods[0]].label)}</p><h2>${esc(o.name)}</h2>
-        <p class="vibe">${esc(o.vibe)}</p><p>${esc(o.why)}</p>
+        <p class="eyebrow">${esc(kicker(o))}</p><h2>${esc(o.name)}</h2>
+        <p class="vibe">${esc(o.blurb)}</p><p>${esc(o.why)}</p>
         <p class="meta">${priceLine(o)} · ${esc(retailerMix(ps))}</p>
         <div class="btns"><button class="btn primary" data-act="view" data-id="${o.id}">Shop the look</button>${saveBtn(o)}</div>
       </div></section>`;
@@ -242,7 +245,7 @@
           <p class="eyebrow">The Soft Winter workwear edit</p>
           <h1>Get dressed for work, but make it cute.</h1>
           <p class="lede">Shoppable office looks in cool, softened color. Fitted, feminine and petite-friendly, from Cider and SHEIN.</p>
-          <div class="btns"><a class="btn primary lg" href="#shop">Shop the looks</a><button class="btn lg" data-act="surprise-go">${I.shuffle}Surprise me</button></div>
+          <div class="btns"><a class="btn primary lg" href="#shop">Shop the looks</a><button class="btn lg" data-act="style-go">${I.shuffle}Style my outfit</button></div>
         </div>
         <button class="hero-img" data-act="view" data-id="winter-kiss-office" aria-label="View Winter Kiss Office">${mosaic(lookProducts(L('winter-kiss-office')))}<span class="caption">Winter Kiss Office</span></button>
       </section>
@@ -280,34 +283,34 @@
   }
 
   function viewShuffle() {
-    if (!R.slots) shuffleAll();
-    const roles = ROLES.filter(r => R.slots[r] && byId[R.slots[r]]), ps = roles.map(r => byId[R.slots[r]]);
-    const t = subtotal(ps), sug = suggest(ps, R.mood);
-    return `<section><div class="sec-head"><h1>Shuffle</h1>${R.from ? `<p class="sec-sub">Remixing ${esc(R.from)}</p>` : ''}</div>
+    if (!R.slots || !ROLES.every(r => byId[R.slots[r]])) generate();
+    const ps = ROLES.map(r => byId[R.slots[r]]), t = subtotal(ps), sug = suggest(ps, R.occasion);
+    const pick = (group, opts) => `<div class="chips">${opts.map(([k, label]) => `<button class="chip ${R[group] === k ? 'on' : ''}" data-act="r-set" data-group="${group}" data-value="${k}" aria-pressed="${R[group] === k}">${esc(label)}</button>`).join('')}</div>`;
+    const relaxed = { color: 'No outfit in that color fits this occasion, so the color preference was relaxed.', occasion: 'Your locked pieces do not fit this occasion, so it was relaxed.', pattern: 'Your locked pieces are both patterned.' }[R.relaxed];
+    return `<section><div class="sec-head"><h1>Shuffle</h1>${R.from ? `<p class="sec-sub">Similar to ${esc(R.from)}</p>` : ''}</div>
       <div class="shuffle">
         <div class="controls">
-          <button class="btn primary lg wide" data-act="surprise">${I.shuffle}Surprise Me</button>
-          <fieldset><legend>Mood</legend><div class="chips">${Object.keys(MOODS).map(k => `<button class="chip ${R.mood === k ? 'on' : ''}" data-act="r-mood" data-value="${k}" aria-pressed="${R.mood === k}">${esc(MOODS[k].label)}</button>`).join('')}</div></fieldset>
-          <div class="ctl-row">
-            <label>Dress code<select data-change="r-formality"><option value="auto">Match the mood</option>${FORMALITY.map(x => `<option value="${x.id}" ${R.formality === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
-            <label>Color preference<select data-change="r-color"><option value="">No preference</option>${usedColors.map(k => `<option value="${k}" ${R.color === k ? 'selected' : ''}>${esc(PALETTE[k].name)}</option>`).join('')}</select></label>
-          </div>
-          <div class="btns"><button class="btn lg" data-act="shuffle">${I.swap}Shuffle again</button>
-            <button class="btn lg ${R.savedId ? 'on' : ''}" data-act="save-remix" ${R.savedId ? 'disabled' : ''}>${I.heart(!!R.savedId)}${R.savedId ? 'Saved' : 'Save this look'}</button></div>
-          <p class="small">Lock a piece to keep it, then shuffle the rest.</p>
+          <fieldset><legend>Occasion</legend>${pick('occasion', Object.entries(OCCASIONS))}</fieldset>
+          <fieldset><legend>Vibe</legend>${pick('vibe', [['surprise', 'Surprise Me']].concat(Object.entries(VIBES)))}</fieldset>
+          <fieldset><legend>Color <span>optional</span></legend>${pick('color', [['any', 'Any']].concat(Object.keys(COLOR_GROUPS).map(k => [k, COLOR_GROUPS[k].label])))}</fieldset>
+          <button class="btn primary lg wide" data-act="style">${I.shuffle}Style My Outfit</button>
         </div>
-        <div class="result" aria-live="polite">
+        <div class="result" id="result" aria-live="polite">
           <div class="result-img">${mosaic(ps)}</div>
-          <p class="eyebrow">${esc(MOODS[R.mood].label)} · ${esc(FORMALITY[fIdx(rFormality())].label)}</p>
+          <p class="eyebrow">${esc(OCCASIONS[R.occasion])} · ${esc(VIBES[R.usedVibe])}</p>
+          ${relaxed ? `<p class="small">${relaxed}</p>` : ''}
           <p class="meta">${t.missing ? `<strong>${money(t.sum)}</strong> known-items subtotal · ${t.missing} price to check` : `<strong>${money(t.sum)}</strong> subtotal · ${ps.length} pieces`}</p>
           <p>${esc(whyFor(ps))}</p>
-          <ul class="slots">${roles.map(r => { const p = byId[R.slots[r]], lock = !!R.locks[r]; return `<li class="${lock ? 'locked' : ''}">
+          <div class="btns result-actions">
+            <button class="btn" data-act="again">${I.swap}Shuffle Again</button>
+            <button class="btn ${R.savedId ? 'on' : ''}" data-act="save-remix" ${R.savedId ? 'disabled' : ''}>${I.heart(!!R.savedId)}${R.savedId ? 'Saved' : 'Save Look'}</button>
+            <button class="btn primary" data-act="shop-pieces">Shop Pieces</button>
+          </div>
+          <ul class="slots" id="pieces" tabindex="-1">${ROLES.map(r => { const p = byId[R.slots[r]], lock = !!R.locks[r]; return `<li class="${lock ? 'locked' : ''}">
               <span class="thumb">${photo(p)}</span>
               <div class="slot-info"><span class="eyebrow">${ROLE_LABEL[r]} · ${esc(storeName(p.retailer))}</span><strong>${esc(p.name)}</strong><span class="meta">${priceText(p)}</span>${shopLink(p, 'link')}</div>
-              <div class="slot-btns">
-                <button class="icon ${lock ? 'on' : ''}" data-act="lock" data-value="${r}" aria-pressed="${lock}" aria-label="${lock ? 'Unlock' : 'Lock'} ${ROLE_LABEL[r]}">${lock ? I.lock : I.unlock}</button>
-                <button class="icon" data-act="swap" data-value="${r}" aria-label="Swap ${ROLE_LABEL[r]}" ${lock ? 'disabled' : ''}>${I.swap}</button>
-              </div></li>`; }).join('')}</ul>
+              <button class="icon ${lock ? 'on' : ''}" data-act="lock" data-value="${r}" aria-pressed="${lock}" aria-label="${lock ? 'Unlock' : 'Keep'} ${ROLE_LABEL[r]} when shuffling">${lock ? I.lock : I.unlock}</button></li>`; }).join('')}</ul>
+          <p class="small">Tap a lock to keep that piece, then Shuffle Again.</p>
           ${suggestBlock(sug)}
         </div>
       </div></section>`;
@@ -328,17 +331,19 @@
   }
 
   function viewStyle() {
-    const sw = (keys, cls = '') => `<div class="palette ${cls}">${keys.map(k => `<span><i style="background:${PALETTE[k].hex}"></i>${esc(PALETTE[k].name)}</span>`).join('')}</div>`;
-    const list = a => `<ul>${a.map(x => `<li>${x}</li>`).join('')}</ul>`;
-    return `<section class="style"><div class="sec-head"><h1>Style Preferences</h1><p class="sec-sub">The logic behind every look</p></div>
-      <div class="style-grid">
-        <article class="card"><p class="eyebrow">Color season</p><h2>Soft Winter</h2><p>Cool, softened color with moderate contrast. Depth comes from navy, charcoal and burgundy rather than stark black-and-white or very saturated brights.</p>${sw(Object.keys(PALETTE).filter(k => k !== 'sky-blue'))}<p class="small">Soft black is used as an accent or grounding neutral, usually away from the face. Avoided: warm beige, camel, orange, mustard and neon brights.</p></article>
-        <article class="card"><p class="eyebrow">Fit</p><h2>Petite and curvy</h2><p>Built for 5'2.5" with curves: everything starts at the waist.</p>${list(['Waist-defining silhouettes and high rises', 'Fitted, feminine tops: wrap, ruched, V, scoop and round necklines', 'Flare or straight jeans and tailored pants', 'Skorts, mini skirts and short dresses, with tights in winter'])}</article>
-        <article class="card"><p class="eyebrow">Shoes</p><h2>Light on the foot</h2>${list(['Mary Janes', 'Ballet flats', 'Feminine sneakers', 'Sleek ankle boots', 'Pink Dr. Martens'])}</article>
-        <article class="card"><p class="eyebrow">Jewelry</p><h2>Delicate metals</h2>${list(['<strong>Gold</strong> with burgundy and berry', '<strong>White gold</strong> with icy blue and gray', '<strong>Rose gold</strong> with navy, pink and blush'])}</article>
-        <article class="card"><p class="eyebrow">Skip</p><h2>Not for me</h2>${list(['Maxi skirts', 'Chunky loafers', 'Boxy or matronly officewear', 'Beige-heavy corporate basics'])}</article>
-        <article class="card"><p class="eyebrow">Shuffle</p><h2>How outfits are built</h2>${list(['Only verified products with real retailer links', 'Keeps the mood and a compatible dress code', 'Favors the strongest Soft Winter colors', 'One pattern at a time', 'Tights, boots, bags and jewelry appear as styling suggestions, never as fake products'])}</article>
-      </div></section>`;
+    const row = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+    return `<section class="style"><div class="sec-head"><h1>Style Preferences</h1></div>
+      <p class="sec-sub">Applied automatically to every look and shuffle.</p>
+      <div class="palette">${Object.keys(PALETTE).filter(k => k !== 'sky-blue').map(k => `<span><i style="background:${PALETTE[k].hex}"></i>${esc(PALETTE[k].name)}</span>`).join('')}</div>
+      <dl class="profile">
+        ${row('Color season', 'Soft Winter: cool, softened color with moderate contrast. Soft black as a grounding neutral.')}
+        ${row('Fit', 'Petite (5\'2.5") and curvy. Waist-defining, fitted, feminine.')}
+        ${row('Tops', 'Wrap, ruched, V, scoop and round necklines.')}
+        ${row('Bottoms', 'Flare or straight jeans, tailored pants, skorts, mini skirts, short dresses. Tights in winter.')}
+        ${row('Shoes', 'Mary Janes, ballet flats, feminine sneakers, sleek ankle boots, pink Dr. Martens.')}
+        ${row('Jewelry', 'Delicate gold, white gold and rose gold.')}
+        ${row('Skip', 'Maxi skirts, chunky loafers, boxy or matronly officewear, beige-heavy basics, warm camel, orange, mustard and neon.')}
+      </dl></section>`;
   }
 
   /* ---------------- look detail sheet ---------------- */
@@ -347,12 +352,12 @@
   function sheetHTML(o) {
     const ps = lookProducts(o), t = subtotal(ps);
     const shots = ps.flatMap(p => [photo(p)].concat(p.imageUrl2 ? [photo(p, true)] : []));
-    return `<div class="sheet-head"><div><p class="eyebrow">${esc(o.moods.map(m => (MOODS[m] || {}).label).filter(Boolean).join(' · '))}</p>
-        <h2 id="sheet-title">${esc(o.name)}</h2><p class="vibe">${esc(o.vibe || '')}</p></div>
+    return `<div class="sheet-head"><div><p class="eyebrow">${esc([kicker(o), VIBES[o.vibe]].filter(Boolean).join(' · '))}</p>
+        <h2 id="sheet-title">${esc(o.name)}</h2><p class="vibe">${esc(o.blurb || '')}</p></div>
         <button class="icon close" data-act="close" aria-label="Close">${I.close}</button></div>
       <div class="gallery g${Math.min(shots.length, 3)}">${shots.join('')}</div>
       <div class="btns sheet-actions">${saveBtn(o, 'Save Look')}<button class="btn" data-act="remix" data-id="${o.id}">${I.shuffle}Remix Similar Look</button></div>
-      <div class="row">${swatches(ps)}<span class="badge">${esc(FORMALITY[fIdx(o.formality)].label)}</span>${(o.tags || []).map(x => `<span class="badge">${esc(x)}</span>`).join('')}</div>
+      <div class="row">${swatches(ps)}${(o.occasions || []).map(k => `<span class="badge">${esc(OCCASIONS[k] || k)}</span>`).join('')}${(o.tags || []).map(x => `<span class="badge">${esc(x)}</span>`).join('')}</div>
       <p>${esc(o.why || whyFor(ps))}</p>
       ${o.stylistNote ? `<blockquote class="note"><span class="eyebrow">Stylist note</span>${esc(o.stylistNote)}</blockquote>` : ''}
       <h3>Shop the pieces</h3>
@@ -431,28 +436,23 @@
     clear: () => { S.filters = {}; persist(); render(true); },
     mode: d => { S.mode = d.value; persist(); render(true); },
     'pieces-go': () => { S.filters = {}; S.mode = 'pieces'; persist(); go('shop'); },
-    'surprise-go': () => { surprise(); go('shuffle'); },
-    surprise: () => { surprise(); render(true); },
-    shuffle: () => { shuffleAll(); render(true); },
-    swap: d => { swapOne(d.value); render(true); },
+    'style-go': () => { R.locks = {}; R.from = ''; generate(); go('shuffle'); },
+    'r-set': d => { R[d.group] = d.value; render(true); },
+    style: () => { R.from = ''; generate(); render(true); const el = $('#result'); if (el && el.getBoundingClientRect().top > innerHeight * 0.5) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
+    again: () => { generate(); render(true); },
+    'shop-pieces': () => { const el = $('#pieces'); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); } },
     lock: d => { R.locks[d.value] = !R.locks[d.value]; render(true); },
-    'r-mood': d => { R.mood = d.value; R.from = ''; shuffleAll(); render(true); },
     'save-remix': () => {
       const ids = ROLES.map(r => R.slots[r]).filter(Boolean), ps = ids.map(id => byId[id]);
       const id = 'remix-' + Date.now();
-      S.custom.push({ id, name: (R.from ? R.from + ' Remix' : MOODS[R.mood].label + ' Remix'), moods: [R.mood], vibe: 'Your own shuffle.', productIds: ids, suggestions: suggest(ps, R.mood), formality: rFormality(), tags: ['remix'], why: whyFor(ps), stylistNote: '', custom: true });
+      S.custom.push({ id, name: (R.from ? R.from + ' Remix' : OCCASIONS[R.occasion] + ' Remix'), occasions: [R.occasion], vibe: R.usedVibe, blurb: 'Your own shuffle.', productIds: ids, suggestions: suggest(ps, R.occasion), tags: ['remix'], why: whyFor(ps), stylistNote: '', custom: true });
       S.saved.unshift(id); R.savedId = id; persist(); toast('Remix saved'); render(true);
     }
-  };
-  const CHANGES = {
-    'r-formality': v => { R.formality = v; shuffleAll(); render(true); },
-    'r-color': v => { R.color = v; shuffleAll(); render(true); }
   };
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
     const fn = ACTIONS[el.dataset.act]; if (fn) fn(el.dataset, el);
   });
-  document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.change; if (k && CHANGES[k]) CHANGES[k](e.target.value, e.target); });
   window.addEventListener('hashchange', () => { closeSheet(); closeDialog(drawer); render(); });
   render();
 })();
