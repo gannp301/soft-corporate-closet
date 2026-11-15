@@ -1,29 +1,28 @@
 /* ============================================================
-   Soft Corporate Closet — PRODUCT DATA (real, approved products only)
+   Soft Corporate Closet — PRODUCT DATA
+   Every product here is a real Cider listing with a real photo, link and reference price.
+   Products without a photo are not allowed in the catalog (the app also hides any that slip in).
 
    PRODUCT FIELDS
    id          unique string (used by looks.js)
-   name        real product name
-   retailer    key from RETAILERS below
-   price       reference price in USD, or null = "Check price" (never guess)
-   url         exact retailer product link
-   imageUrl    >>> paste the retailer product photo URL (or 'assets/photo.jpg') here <<<
-               '' shows a neutral "Product image pending" placeholder
-   imageUrl2   optional second photo
-   category    tops | bottoms | shoes  (key from CATEGORIES)
+   name        retailer product name — color
+   retailer    key from RETAILERS
+   price       reference price in USD when the listing was read, or null = "Check price"
+   url         retailer product link
+   imageUrl    retailer product photo (required)
+   imageUrl2   optional second photo (usually on-model)
+   category    tops | bottoms | dresses | shoes | accessories
+   sub         accessories only: tights | bag | jewelry
    color       key from PALETTE
-   pattern     optional: true for stripes / houndstooth etc. (Shuffle avoids pattern-on-pattern)
-   sizes       verified sizes only, e.g. ['S','M']. [] = "see retailer"
-   tags        short style tags
-   occasions   keys from OCCASIONS this piece suits (Shuffle never uses it outside them)
+   pattern     optional: true for stripes / houndstooth (Shuffle never mixes two patterns)
+   sizes       sizes in stock when the listing was read
+   occasions   keys from OCCASIONS this piece suits
    vibes       keys from VIBES
    fit         fit traits used automatically by Shuffle: petite, curve, waist, fitted, feminine, winter
-   fitNotes    fit guidance (petite 5'2.5", curvy)
    softWinter  { rating: 'excellent' | 'good' | 'neutral', note }
    stylistNote how to wear it
 
-   Prices are reference prices, not live guarantees.
-   Cider photos are linked from Cider's image host. SHEIN photos are still pending.
+   Prices, sizes and availability change: they are reference values, not live data.
    ============================================================ */
 window.SCC = window.SCC || {};
 
@@ -40,14 +39,29 @@ SCC.PALETTE = {
   'charcoal':   { name: 'Charcoal',         hex: '#4b4e58', family: 'neutral' },
   'soft-black': { name: 'Soft black',       hex: '#25242a', family: 'neutral' },
   'soft-white': { name: 'Soft white',       hex: '#f3f3f5', family: 'neutral' },
-  'cool-gray':  { name: 'Cool gray',        hex: '#b6b9c4', family: 'neutral' },
-  'icy-pink':   { name: 'Dusty icy pink',   hex: '#ead0d9', family: 'pink' },
-  'cool-blush': { name: 'Cool blush',       hex: '#dcb6c4', family: 'pink' },
+  'cool-gray':  { name: 'Cool gray',        hex: '#9a9da8', family: 'neutral' },
+  'denim':      { name: 'Denim blue',       hex: '#3f5f8a', family: 'neutral' },
+  'icy-pink':   { name: 'Dusty icy pink',   hex: '#f1d3dc', family: 'pink' },
+  'cool-blush': { name: 'Cool blush',       hex: '#e4b4c2', family: 'pink' },
   'burgundy':   { name: 'Cool burgundy',    hex: '#6b2037', family: 'berry' },
   'berry':      { name: 'Muted berry',      hex: '#8b3f60', family: 'berry' },
-  'icy-blue':   { name: 'Muted icy blue',   hex: '#c3d3e3', family: 'blue' },
+  'icy-blue':   { name: 'Muted icy blue',   hex: '#a9c4dc', family: 'blue' },
   'sky-blue':   { name: 'Sky blue',         hex: '#a3c6e6', family: 'blue' },
-  'lavender':   { name: 'Smoky lavender',   hex: '#b5adc9', family: 'lavender' }
+  'dusty-blue': { name: 'Dusty blue',       hex: '#5d7aa8', family: 'blue' },
+  'lavender':   { name: 'Smoky lavender',   hex: '#b5adc9', family: 'lavender' },
+  'gold':       { name: 'Gold',             hex: '#d9b45a', family: 'metal' },
+  'white-gold': { name: 'White gold',       hex: '#cfd3da', family: 'metal' },
+  'rose-gold':  { name: 'Rose gold',        hex: '#e3ab9f', family: 'metal' }
+};
+
+/* ---- STYLES: the six curated outfit categories ---- */
+SCC.STYLES = {
+  'winter-kiss':    { label: 'Winter Kiss Office', blurb: 'Icy blue and pink, short hems, black tights.' },
+  'soft-corporate': { label: 'Soft Corporate',     blurb: 'Tailored trousers and soft knits in navy and gray.' },
+  'baddie-lite':    { label: 'Office Baddie Lite', blurb: 'Wine, black and a defined waist.' },
+  'cold':           { label: 'Cold Office',        blurb: 'Knits and tights for freezing air conditioning.' },
+  'cute-polished':  { label: 'Cute & Polished',    blurb: 'Skorts, cape dresses and Mary Janes.' },
+  'friday':         { label: 'Friday Casual',      blurb: 'Denim, fitted tees and pink shoes.' }
 };
 
 /* ---- OCCASIONS and VIBES: the two styling dimensions used by Shuffle ---- */
@@ -63,20 +77,15 @@ SCC.VIBES = {
   cozy:  'Cozy & Polished'
 };
 
-/* ---- Shuffle color preferences: label + the palette keys each one covers ---- */
+/* ---- Color groups for Shuffle and the Shop filter: label + palette keys ---- */
 SCC.COLOR_GROUPS = {
   'navy':       { label: 'Navy',             colors: ['soft-navy'] },
-  'pink-blue':  { label: 'Pink / Blue',      colors: ['icy-pink', 'cool-blush', 'icy-blue', 'sky-blue'] },
+  'pink-blue':  { label: 'Pink / Blue',      colors: ['icy-pink', 'cool-blush', 'icy-blue', 'sky-blue', 'dusty-blue'] },
   'burgundy':   { label: 'Burgundy / Berry', colors: ['burgundy', 'berry'] },
   'black-gray': { label: 'Black / Gray',     colors: ['soft-black', 'charcoal', 'cool-gray'] }
 };
 
-/* ---- Seasonal editorial collections (not moods) ---- */
-SCC.COLLECTIONS = {
-  'winter-kiss': { label: 'Winter Kiss Office', kicker: 'Seasonal edit' }
-};
-
-SCC.CATEGORIES = { tops: 'Tops', bottoms: 'Bottoms', shoes: 'Shoes' };
+SCC.CATEGORIES = { tops: 'Tops', bottoms: 'Bottoms', dresses: 'Dresses', shoes: 'Shoes', accessories: 'Accessories' };
 
 SCC.PRODUCTS = [
   { id: 'cider-navy-cable-vneck',
@@ -85,11 +94,9 @@ SCC.PRODUCTS = [
     url: 'https://www.shopcider.com/product/detail?pid=115076423&style_id=2232447',
     imageUrl: 'https://img1.shopcider.com/product/1761910076000-KfBpYA.jpg', imageUrl2: '',
     category: 'tops', color: 'soft-navy', pattern: true, sizes: [],
-    tags: ['cable knit', 'v-neck', 'stripe'],
     occasions: ['everyday', 'friday'],
     vibes: ['cute', 'cozy'],
     fit: ['feminine', 'winter'],
-    fitNotes: 'V-neck opens up the neckline on a petite frame. Tuck or half-tuck into a high rise to keep your waist visible.',
     softWinter: { rating: 'good', note: 'Dark navy is a core Soft Winter neutral. The cream stripe adds contrast, though it is softer than black and white: keep everything else dark and quiet.' },
     stylistNote: 'The stripe is the statement: solid bottoms, one delicate necklace.' },
 
@@ -99,25 +106,21 @@ SCC.PRODUCTS = [
     url: 'https://www.shopcider.com/goods/cable-knit-v-neck-solid-button-cardigan-113809232',
     imageUrl: 'https://img1.shopcider.com/product/1728441831000-6ptTrh.jpg', imageUrl2: '',
     category: 'tops', color: 'sky-blue', sizes: [],
-    tags: ['cardigan', 'cable knit', 'wool blend'],
     occasions: ['everyday', 'friday', 'dressy'],
     vibes: ['cute', 'cozy'],
     fit: ['feminine', 'winter'],
-    fitNotes: 'Wear it buttoned as a top so it ends at the waistband. Leave the top button open for a soft V.',
     softWinter: { rating: 'good', note: 'Sky blue is a little clearer and brighter than the muted icy blue that suits Soft Winter best. It still works because it is cool: soften it with charcoal, soft navy or soft white, and keep stark contrast to a minimum.' },
     stylistNote: 'White-gold jewelry keeps the blue looking icy rather than bright.' },
 
   { id: 'cider-houndstooth-mini',
     name: 'Tweed High Rise Houndstooth Mini Skirt — Black',
-    retailer: 'cider', price: null,
+    retailer: 'cider', price: 29.90,
     url: 'https://www.shopcider.com/goods/tweed-high-rise-houndstooth-mini-skirt-114904090',
     imageUrl: 'https://img1.shopcider.com/product/1757320739000-mY3zZH.jpg', imageUrl2: '',
     category: 'bottoms', color: 'soft-black', pattern: true, sizes: [],
-    tags: ['houndstooth', 'tweed', 'high rise', 'mini'],
     occasions: ['everyday', 'meeting', 'dressy'],
     vibes: ['cute', 'sleek'],
     fit: ['petite', 'waist', 'feminine', 'winter'],
-    fitNotes: 'High rise marks the waist and a mini length keeps petite legs long. Tweed has structure, so it holds its shape. Add tights for the office.',
     softWinter: { rating: 'good', note: 'Houndstooth blends black and light into a soft gray effect from a distance, which is gentler than a solid block of black. Pair it with a soft top rather than stark white.' },
     stylistNote: 'One pattern at a time: keep the top solid and soft.' },
 
@@ -127,81 +130,319 @@ SCC.PRODUCTS = [
     url: 'https://www.shopcider.com/goods/solid-slit-mini-skirt-11',
     imageUrl: 'https://img1.shopcider.com/product/1670466663000-YD8pW5.jpg', imageUrl2: '',
     category: 'bottoms', color: 'soft-black', sizes: [],
-    tags: ['mini', 'slit', 'solid'],
     occasions: ['everyday', 'friday', 'dressy'],
     vibes: ['sleek', 'cute'],
     fit: ['petite', 'feminine'],
-    fitNotes: 'Short hem suits a petite frame. Opaque tights make the slit and the length office-appropriate.',
     softWinter: { rating: 'neutral', note: 'Black works as a grounding neutral here, worn away from the face. Tights in the same tone make one soft, continuous line.' },
     stylistNote: 'Tuck a fitted knit in fully so the waistband shows.' },
 
-  { id: 'shein-burgundy-wrap',
-    name: 'minisummer Slim-Fit Side-Tie Wrap V-Neck Blouse — Burgundy',
-    retailer: 'shein', price: 12.36,
-    url: 'https://us.shein.com/Women-Elegant-Fall-Winter-Wrap-V-Neck-Long-Sleeve-Top%2C-Side-Tie-Slim-Fitted-Blouse%2C-Office-Coffee-Daily-Outfit-p-581162810.html',
-    imageUrl: '', imageUrl2: '',
-    category: 'tops', color: 'burgundy', sizes: [],
-    tags: ['wrap', 'side tie', 'v-neck', 'slim fit'],
-    occasions: ['everyday', 'meeting', 'dressy'],
-    vibes: ['sleek', 'cute'],
-    fit: ['waist', 'curve', 'fitted', 'feminine'],
-    fitNotes: 'Wrap construction with a side tie defines the waist and adjusts to curves. Slim fit, so it tucks cleanly into high-waisted bottoms.',
-    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich, deep and never harsh near the face.' },
-    stylistNote: 'A delicate gold necklace inside the V. Tie the side knot at your natural waist.' },
+  { id: 'cider-wine-vneck-ruched',
+    name: 'V-neck Solid Lace Trim Ruched Long Sleeve Top — Wine',
+    retailer: 'cider', price: 15.99,
+    url: 'https://www.shopcider.com/goods/v-neck-solid-lace-trim-ruched-long-sleeve-top-113849815?style_id=2057675',
+    imageUrl: 'https://img1.shopcider.com/product/1727677733000-Q6iPDZ.jpg', imageUrl2: 'https://img1.shopcider.com/product/1743590578000-6ZF8sX.jpg',
+    category: 'tops', color: 'burgundy', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cute'], fit: ['waist', 'curve', 'fitted', 'feminine'],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'Tuck it in fully and add one fine gold necklace inside the V.' },
 
-  { id: 'shein-burgundy-notch-knit',
-    name: 'Minimalist Notch V-Neck Long Sleeve Knit Top — Burgundy',
-    retailer: 'shein', price: 17.59,
-    url: 'https://us.shein.com/Fall-Minimalist-Casual-Notch-V-Neck-Solid-Long-Sleeve-Knit-Top-Christmas-Thanksgiving-Office-Burgundy-p-569588258.html',
-    imageUrl: '', imageUrl2: '',
-    category: 'tops', color: 'burgundy', sizes: [],
-    tags: ['notch neck', 'knit', 'long sleeve'],
-    occasions: ['everyday', 'friday', 'meeting'],
-    vibes: ['cozy', 'sleek'],
-    fit: ['feminine', 'winter'],
-    fitNotes: 'The notch V gives a little neckline shape without going low. Tuck into a high-rise skirt or pants for waist definition.',
-    softWinter: { rating: 'excellent', note: 'Cool burgundy again: a signature Soft Winter color that warms up a cold-office outfit without going warm-toned.' },
-    stylistNote: 'Small gold or rose-gold studs and nothing else. The neckline is the detail.' },
+  { id: 'cider-gray-vneck-ruched',
+    name: 'Textured V-neck Ruched Long Sleeve Top — Grey',
+    retailer: 'cider', price: 27.90,
+    url: 'https://www.shopcider.com/goods/textured-v-neck-ruched-long-sleeve-top-115741454?style_id=2362704',
+    imageUrl: 'https://img1.shopcider.com/product/1792392639000-ZFSzQG.jpg', imageUrl2: '',
+    category: 'tops', color: 'cool-gray', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'friday'], vibes: ['cozy', 'sleek'], fit: ['waist', 'curve', 'fitted'],
+    softWinter: { rating: 'excellent', note: 'Cool gray is a Soft Winter neutral that keeps contrast moderate.' },
+    stylistNote: 'Soft gray keeps the contrast gentle. White-gold jewelry.' },
 
-  { id: 'shein-black-flare-pants',
-    name: 'SHEIN Clasi High-Waisted Flare Dress Pants — Black',
-    retailer: 'shein', price: 17.69,
-    url: 'https://us.shein.com/goods-p-42036628.html',
-    imageUrl: '', imageUrl2: '',
-    category: 'bottoms', color: 'soft-black', sizes: [],
-    tags: ['flare', 'high-waisted', 'dress pants'],
-    occasions: ['everyday', 'meeting', 'friday', 'dressy'],
-    vibes: ['sleek', 'cozy'],
-    fit: ['waist', 'curve'],
-    fitNotes: 'High waist plus a flare balances curves and lengthens the leg. At 5\'2.5", check the inseam on the retailer page; the hem should just skim the floor in your shoes.',
-    softWinter: { rating: 'neutral', note: 'Black is a grounding neutral for Soft Winter. Worn on the bottom half it anchors softer colors up top.' },
-    stylistNote: 'Fitted top, full tuck. A little height (Mary Jane or ankle boot) keeps the flare from pooling.' },
+  { id: 'cider-pink-round-tee',
+    name: 'Round Neckline Solid Long Sleeve Tee — Pink',
+    retailer: 'cider', price: 11.11,
+    url: 'https://www.shopcider.com/goods/round-neckline-solid-long-sleeve-tee-1052830?style_id=1150926',
+    imageUrl: 'https://img1.shopcider.com/product/1690883047000-Nec4j2.jpg', imageUrl2: 'https://img1.shopcider.com/product/1740559619000-5xkJ7C.jpg',
+    category: 'tops', color: 'cool-blush', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday'], vibes: ['cute', 'cozy'], fit: ['fitted', 'feminine', 'petite'],
+    softWinter: { rating: 'excellent', note: 'Cool blush pink is a signature Soft Winter light.' },
+    stylistNote: 'The curved hem sits neatly over a high waistband.' },
 
-  { id: 'shein-black-mary-jane',
-    name: 'CUCCOO DOLLMOD Round-Toe Mary Jane Flats — Black',
-    retailer: 'shein', price: 17.10,
-    url: 'https://us.shein.com/Women%27s-Black-Soft-Leather-Mary-Jane-Flats%2C-Round-Toe-Buckle-Slip-On-Shoes%2C-Daily-Commuting-Casual-And-Comfortable-Women%27s-Shoes-p-559177872.html',
-    imageUrl: '', imageUrl2: '',
-    category: 'shoes', color: 'soft-black', sizes: [],
-    tags: ['mary jane', 'round toe', 'flat'],
-    occasions: ['everyday', 'friday'],
-    vibes: ['cute', 'cozy'],
-    fit: ['feminine'],
-    fitNotes: 'Round toe reads soft and sweet. Best with tights and a mini.',
-    softWinter: { rating: 'neutral', note: 'A black shoe is a grounding neutral. With black tights it blends into one line.' },
-    stylistNote: 'Match your tights to the shoe for a longer leg line.' },
+  { id: 'cider-blue-round-tee',
+    name: 'Round Neckline Solid Long Sleeve Tee — Baby Blue',
+    retailer: 'cider', price: 11.11,
+    url: 'https://www.shopcider.com/goods/round-neckline-solid-long-sleeve-tee-1052830?style_id=1160533',
+    imageUrl: 'https://img1.shopcider.com/product/1698840662000-kyrXHE.jpg', imageUrl2: 'https://img1.shopcider.com/product/1740559608000-rTHpMB.jpg',
+    category: 'tops', color: 'icy-blue', sizes: ['XXS', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday'], vibes: ['cute', 'cozy'], fit: ['fitted', 'feminine', 'petite'],
+    softWinter: { rating: 'excellent', note: 'Muted icy blue is cool and soft near the face.' },
+    stylistNote: 'Icy blue near the face, navy or gray below.' },
 
-  { id: 'shein-black-square-mary-jane',
-    name: 'Square-Toe Instep-Strap Mary Jane Flats — Black',
-    retailer: 'shein', price: 23.60,
-    url: 'https://us.shein.com/Women-Mary-Jane-Flats%2C-Square-Toe%2C-Instep-Strap%2C-Easy-Wear%2C-Daily-Comfort-p-570574905.html',
-    imageUrl: '', imageUrl2: '',
-    category: 'shoes', color: 'soft-black', sizes: [],
-    tags: ['mary jane', 'square toe', 'flat'],
-    occasions: ['everyday', 'meeting', 'dressy'],
-    vibes: ['sleek', 'cute'],
-    fit: ['feminine'],
-    fitNotes: 'The square toe is a little sharper and more tailored than the round-toe pair. Good under flare pants.',
-    softWinter: { rating: 'neutral', note: 'A black shoe is a grounding neutral that disappears under a black flare hem.' },
-    stylistNote: 'The more polished of the two Mary Janes. Reach for these on meeting days.' }
+  { id: 'cider-navy-scoop-tee',
+    name: 'Cotton-blend Scoop Neckline Mid-length Sleeve Tee — Dark Navy',
+    retailer: 'cider', price: 14.90,
+    url: 'https://www.shopcider.com/goods/cotton-blend-scoop-neck-ruched-mid-sleeve-tee-115279502?style_id=2262473',
+    imageUrl: 'https://img1.shopcider.com/product/1769071965000-Tniad3.jpg', imageUrl2: '',
+    category: 'tops', color: 'soft-navy', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'friday'], vibes: ['sleek', 'cute'], fit: ['fitted', 'curve'],
+    softWinter: { rating: 'excellent', note: 'Soft navy is a core Soft Winter neutral, gentler than black.' },
+    stylistNote: 'A scoop neck and elbow sleeves: the easiest polished tee.' },
+
+  { id: 'cider-wine-shawl-sweater',
+    name: 'Knit Shawl V-neck Collar Button Detail Sweater — Wine',
+    retailer: 'cider', price: 37.90,
+    url: 'https://www.shopcider.com/goods/knit-v-neck-button-detail-long-sleeve-sweater-115650256?style_id=2371107',
+    imageUrl: 'https://img1.shopcider.com/product/1793338659000-7rbeB4.jpg', imageUrl2: '',
+    category: 'tops', color: 'burgundy', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['cozy', 'sleek'], fit: ['fitted', 'feminine', 'winter'],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'The shawl collar frames the neckline. Skip the necklace, add small studs.' },
+
+  { id: 'cider-blue-shawl-sweater',
+    name: 'Knit Shawl V-neck Collar Button Detail Sweater — Mid Blue',
+    retailer: 'cider', price: 37.90,
+    url: 'https://www.shopcider.com/goods/knit-v-neck-button-detail-long-sleeve-sweater-115650256?style_id=2347460',
+    imageUrl: 'https://img1.shopcider.com/product/1788858313000-yYGZY5.jpg', imageUrl2: '',
+    category: 'tops', color: 'dusty-blue', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting'], vibes: ['cozy', 'cute'], fit: ['fitted', 'feminine', 'winter'],
+    softWinter: { rating: 'excellent', note: 'A dusty, grayed blue is cool and softened: ideal for Soft Winter.' },
+    stylistNote: 'Dusty blue with gray trousers is quiet and very Soft Winter.' },
+
+  { id: 'cider-pink-vneck-tee',
+    name: 'Cotton-blend High Stretch V-neck Short Sleeve Tee — Light Pink',
+    retailer: 'cider', price: 11.11,
+    url: 'https://www.shopcider.com/goods/cotton-blend-high-stretch-v-neck-short-sleeve-tee-115346368?style_id=2297575',
+    imageUrl: 'https://img1.shopcider.com/product/1779360250000-WPjEhW.jpg', imageUrl2: '',
+    category: 'tops', color: 'icy-pink', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday'], vibes: ['cute'], fit: ['fitted', 'feminine'],
+    softWinter: { rating: 'excellent', note: 'Dusty icy pink is a signature Soft Winter light.' },
+    stylistNote: 'Icy pink with denim or navy. Rose-gold jewelry.' },
+
+  { id: 'cider-navy-belted-trousers',
+    name: 'Petite Mid Rise Solid Straight Leg Trousers With Belt — Navy Blue',
+    retailer: 'cider', price: 39.90,
+    url: 'https://www.shopcider.com/goods/mid-rise-solid-wide-leg-trousers-with-belt-110862335?style_id=2040095',
+    imageUrl: 'https://img1.shopcider.com/product/1724997578000-524yfp.jpg', imageUrl2: '',
+    category: 'bottoms', color: 'soft-navy', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cozy'], fit: ['petite', 'waist'],
+    softWinter: { rating: 'excellent', note: 'Soft navy is a core Soft Winter neutral, gentler than black.' },
+    stylistNote: 'Petite length. The belt marks your waist over a tucked top.' },
+
+  { id: 'cider-gray-belted-trousers',
+    name: 'Petite Mid Rise Solid Straight Leg Trousers With Belt — Grey',
+    retailer: 'cider', price: 39.90,
+    url: 'https://www.shopcider.com/goods/mid-rise-solid-wide-leg-trousers-with-belt-110862335?style_id=2040456',
+    imageUrl: 'https://img1.shopcider.com/product/1725114171000-CDfdeY.jpg', imageUrl2: '',
+    category: 'bottoms', color: 'cool-gray', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting'], vibes: ['sleek', 'cozy'], fit: ['petite', 'waist'],
+    softWinter: { rating: 'excellent', note: 'Cool gray is a Soft Winter neutral that keeps contrast moderate.' },
+    stylistNote: 'Petite length in soft gray: lighter than black, still tailored.' },
+
+  { id: 'cider-black-petite-pants',
+    name: 'Petite Mid Rise Pleated Straight Leg Pants — Black',
+    retailer: 'cider', price: 17.45,
+    url: 'https://www.shopcider.com/goods/middle-waist-pleated-straight-leg-trousers-103779510?style_id=1161080',
+    imageUrl: 'https://img1.shopcider.com/product/1699101558000-Y7k6zf.jpg', imageUrl2: 'https://img1.shopcider.com/product/1722243543000-fc3fh5.jpg',
+    category: 'bottoms', color: 'soft-black', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek'], fit: ['petite', 'waist'],
+    softWinter: { rating: 'neutral', note: 'Black works as a grounding neutral, best away from the face.' },
+    stylistNote: 'Petite inseam with a pleat front. Black grounds softer colors up top.' },
+
+  { id: 'cider-gray-flare-knit-pants',
+    name: 'Knit Wool-blend Mid Rise Elastic Waist Flared Trousers — Grey',
+    retailer: 'cider', price: 39.90,
+    url: 'https://www.shopcider.com/goods/knit-wool-blend-mid-rise-elastic-waist-flared-trousers-114923356?style_id=2204087',
+    imageUrl: 'https://img1.shopcider.com/product/1760169432000-dFHGXF.jpg', imageUrl2: 'https://img1.shopcider.com/product/1760169432000-TsrXSj.jpg',
+    category: 'bottoms', color: 'charcoal', sizes: ['M', 'L'],
+    occasions: ['everyday', 'friday'], vibes: ['cozy'], fit: ['curve'],
+    softWinter: { rating: 'excellent', note: 'Charcoal gives depth without the hardness of black.' },
+    stylistNote: 'A soft knit flare. Keep the top fitted so the shape stays defined.' },
+
+  { id: 'cider-navy-pleated-mini',
+    name: 'Mid Rise Pleated Mini Skirt — Dark Navy',
+    retailer: 'cider', price: 19.90,
+    url: 'https://www.shopcider.com/goods/mid-rise-pleated-mini-skirt-114468690?style_id=2359550',
+    imageUrl: 'https://img1.shopcider.com/product/1791792311000-5MaEb5.jpg', imageUrl2: '',
+    category: 'bottoms', color: 'soft-navy', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute'], fit: ['petite', 'waist', 'feminine'],
+    softWinter: { rating: 'excellent', note: 'Soft navy is a core Soft Winter neutral, gentler than black.' },
+    stylistNote: 'Add black tights and Mary Janes for the office.' },
+
+  { id: 'cider-wine-pleated-mini',
+    name: 'Mid Rise Pleated Mini Skirt — Wine',
+    retailer: 'cider', price: 19.90,
+    url: 'https://www.shopcider.com/goods/mid-rise-pleated-mini-skirt-114468690?style_id=2359542',
+    imageUrl: 'https://img1.shopcider.com/product/1791792290000-QZQxzx.jpg', imageUrl2: '',
+    category: 'bottoms', color: 'burgundy', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute', 'sleek'], fit: ['petite', 'waist', 'feminine'],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'Best with navy, pink or gray on top and black tights.' },
+
+  { id: 'cider-black-belted-skort',
+    name: 'Mid Waist Solid Pleated Skort with Belt — Black',
+    retailer: 'cider', price: 34.90,
+    url: 'https://www.shopcider.com/goods/middle-waist-solid-pleated-skort-102379344?style_id=1162927',
+    imageUrl: 'https://img1.shopcider.com/product/1700222101000-aiP5tr.jpg', imageUrl2: '',
+    category: 'bottoms', color: 'soft-black', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute', 'sleek'], fit: ['petite', 'waist', 'feminine'],
+    softWinter: { rating: 'neutral', note: 'Black works as a grounding neutral, best away from the face.' },
+    stylistNote: 'A skort: the look of a pleated mini, the comfort of shorts.' },
+
+  { id: 'cider-flare-jeans',
+    name: 'Stretch Denim High Waist Button Flared Jeans — Denim',
+    retailer: 'cider', price: 47.90,
+    url: 'https://www.shopcider.com/goods/denim-high-waist-button-flared-jeans-1037544?style_id=142001',
+    imageUrl: 'https://img1.shopcider.com/product/1683805912000-btZamp.jpg', imageUrl2: 'https://img1.shopcider.com/product/1684132385000-ct8P7Z.jpg',
+    category: 'bottoms', color: 'denim', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['friday'], vibes: ['cute', 'sleek', 'cozy'], fit: ['curve', 'waist'],
+    softWinter: { rating: 'neutral', note: 'Blue denim is a cool, easy neutral.' },
+    stylistNote: 'High waist and a strong flare lengthen the leg. Wear with a little height.' },
+
+  { id: 'cider-straight-jeans',
+    name: 'Stretch High Waist Straight Leg Jeans — Denim',
+    retailer: 'cider', price: 49.90,
+    url: 'https://www.shopcider.com/goods/high-waist-wide-leg-jeans-1039924?style_id=144692',
+    imageUrl: 'https://img1.shopcider.com/product/1683808990000-snNKCm.jpg', imageUrl2: '',
+    category: 'bottoms', color: 'denim', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['friday'], vibes: ['cute', 'cozy'], fit: ['waist'],
+    softWinter: { rating: 'neutral', note: 'Blue denim is a cool, easy neutral.' },
+    stylistNote: 'High-waisted straight leg. Cuff once with sneakers or boots.' },
+
+  { id: 'cider-wine-knit-dress',
+    name: 'Knit Boat Neck Long Sleeve Split Mini Dress — Wine',
+    retailer: 'cider', price: 39.90,
+    url: 'https://www.shopcider.com/goods/knit-boat-neck-long-sleeve-split-mini-dress-114860884?style_id=2226049',
+    imageUrl: 'https://img1.shopcider.com/product/1762238784000-MXQWc2.jpg', imageUrl2: 'https://img1.shopcider.com/product/1766045592000-fid7Sd.jpg',
+    category: 'dresses', color: 'burgundy', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cozy'], fit: ['waist', 'curve', 'winter'],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'A knit dress with a defined waist. Tights and flats for the office.' },
+
+  { id: 'cider-wine-cape-dress',
+    name: 'Knit Stand Collar Long Sleeve Two Piece A-line Mini Dress — Wine',
+    retailer: 'cider', price: 57.90,
+    url: 'https://www.shopcider.com/goods/knit-stand-collar-long-sleeve-two-piece-a-line-mini-dress-115796582?style_id=2349794',
+    imageUrl: 'https://img1.shopcider.com/product/1789350578000-SdH3Aa.jpg', imageUrl2: 'https://img1.shopcider.com/product/1789958427000-3WbQp5.jpg',
+    category: 'dresses', color: 'burgundy', sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['cute', 'sleek'], fit: ['waist', 'feminine', 'winter'],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'The cape layer does the work of a jacket. Keep jewelry small.' },
+
+  { id: 'cider-navy-denim-dress',
+    name: 'Our Spot Dress — Navy Blue',
+    retailer: 'cider', price: 64.90,
+    url: 'https://www.shopcider.com/goods/stretch-denim-lantern-sleeve-metal-detail-ruffle-hem-mini-dress-115621041?style_id=2319895',
+    imageUrl: 'https://img1.shopcider.com/product/1785317586000-6iiJzX.jpg', imageUrl2: 'https://img1.shopcider.com/product/1784026861000-jmizYJ.jpg',
+    category: 'dresses', color: 'denim', sizes: ['XXS', 'XS', 'S', 'M', 'L', 'XL'],
+    occasions: ['everyday', 'friday'], vibes: ['cute'], fit: ['waist', 'feminine'],
+    softWinter: { rating: 'neutral', note: 'Blue denim is a cool, easy neutral.' },
+    stylistNote: 'A fitted bodice and flared hem in dark denim. Friday with sneakers.' },
+
+  { id: 'cider-black-bow-flats',
+    name: 'Bowknot Decor Square Toe Ballet Mary Jane Flats — Black',
+    retailer: 'cider', price: 24.90,
+    url: 'https://www.shopcider.com/goods/bow-decor-square-toe-mary-jane-flats-1035864?style_id=1152617',
+    imageUrl: 'https://img1.shopcider.com/product/1701743966000-YXem4m.jpg', imageUrl2: '',
+    category: 'shoes', color: 'soft-black', sizes: ['36', '37', '38', '39', '40', '41'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: ['sleek', 'cute'], fit: ['feminine'],
+    softWinter: { rating: 'neutral', note: 'Black works as a grounding neutral, best away from the face.' },
+    stylistNote: 'Square-toe ballet flats with a small bow: polished, not precious.' },
+
+  { id: 'cider-burgundy-mary-jane',
+    name: 'Classic Ballerina Flats — Burgundy',
+    retailer: 'cider', price: 19.99,
+    url: 'https://www.shopcider.com/goods/faux-leather-ballerina-flat-113380677?style_id=2070628',
+    imageUrl: 'https://img1.shopcider.com/product/1729860979000-k8D2zm.jpg', imageUrl2: '',
+    category: 'shoes', color: 'burgundy', sizes: ['36', '37', '39', '40', '41'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: ['cute', 'cozy'], fit: ['feminine'],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'Burgundy Mary Janes echo wine and berry pieces.' },
+
+  { id: 'cider-black-mary-jane',
+    name: 'Classic Faux Pearl Mary Jane Ballet Flats — Black',
+    retailer: 'cider', price: 17.99,
+    url: 'https://www.shopcider.com/goods/faux-pearl-square-toe-mary-jane-flats-1035774?style_id=143505',
+    imageUrl: 'https://img1.shopcider.com/product/1713169700000-HFRm5j.jpg', imageUrl2: '',
+    category: 'shoes', color: 'soft-black', sizes: ['36', '37', '38', '39', '40', '41'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: ['cute', 'sleek', 'cozy'], fit: ['feminine'],
+    softWinter: { rating: 'neutral', note: 'Black works as a grounding neutral, best away from the face.' },
+    stylistNote: 'A slim Mary Jane with pearl-trim detail. Lovely with tights.' },
+
+  { id: 'cider-pink-satin-sneakers',
+    name: 'Satin Lace-Up Sneakers — Pink',
+    retailer: 'cider', price: 47.90,
+    url: 'https://www.shopcider.com/goods/satin-lace-up-sneakers-115461864?style_id=2291584',
+    imageUrl: 'https://img1.shopcider.com/product/1778155630000-iHCHRy.jpg', imageUrl2: 'https://img1.shopcider.com/product/1784008174000-pimmk6.jpg',
+    category: 'shoes', color: 'cool-blush', sizes: ['36', '37', '38', '39', '40', '41'],
+    occasions: ['everyday', 'friday'], vibes: ['cute', 'cozy'], fit: ['feminine'],
+    softWinter: { rating: 'excellent', note: 'Cool blush pink is a signature Soft Winter light.' },
+    stylistNote: 'Feminine satin sneakers for Fridays.' },
+
+  { id: 'cider-pink-mary-jane',
+    name: 'Double Strap Knitted Mary Jane Flats — Pink',
+    retailer: 'cider', price: 18.99,
+    url: 'https://www.shopcider.com/goods/double-strap-knitted-fabric-mary-jane-flats-114097865?style_id=2252880',
+    imageUrl: 'https://img1.shopcider.com/product/1768913683000-NRiY8P.jpg', imageUrl2: '',
+    category: 'shoes', color: 'cool-blush', sizes: ['36', '37', '38', '39', '40', '41'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute'], fit: ['feminine'],
+    softWinter: { rating: 'excellent', note: 'Cool blush pink is a signature Soft Winter light.' },
+    stylistNote: 'A soft pink Mary Jane for the icy-pink looks.' },
+
+  { id: 'cider-black-tights',
+    name: 'Thermal Tights — Black',
+    retailer: 'cider', price: 17.90,
+    url: 'https://www.shopcider.com/goods/thermal-tights-113085513?style_id=2038510',
+    imageUrl: 'https://img1.shopcider.com/product/1724833606000-pniZBD.png', imageUrl2: '',
+    category: 'accessories', sub: 'tights', color: 'soft-black', sizes: ['One Size'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: ['winter'],
+    softWinter: { rating: 'neutral', note: 'Black works as a grounding neutral, best away from the face.' },
+    stylistNote: 'Makes minis and short dresses office-ready in winter.' },
+
+  { id: 'cider-burgundy-bag',
+    name: 'The Perry Shoulder Bag — Burgundy',
+    retailer: 'cider', price: 32.90,
+    url: 'https://www.shopcider.com/goods/square-boston-shoulder-bag-106197858?style_id=2027249',
+    imageUrl: 'https://img1.shopcider.com/product/1724391340000-CAszBw.jpg', imageUrl2: '',
+    category: 'accessories', sub: 'bag', color: 'burgundy', sizes: ['One Size'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
+    softWinter: { rating: 'excellent', note: 'Cool burgundy is one of the most flattering Soft Winter colors: rich and deep, never harsh.' },
+    stylistNote: 'A structured burgundy shoulder bag adds depth to navy, gray and pink.' },
+
+  { id: 'cider-gold-heart-necklace',
+    name: 'Heart Pendant Necklace — Gold',
+    retailer: 'cider', price: 3.99,
+    url: 'https://www.shopcider.com/goods/heart-pendant-necklace-115431068?style_id=2282976',
+    imageUrl: 'https://img1.shopcider.com/product/1776340663000-7iWMGG.jpg', imageUrl2: '',
+    category: 'accessories', sub: 'jewelry', color: 'gold', sizes: ['One Size'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
+    softWinter: { rating: 'good', note: 'Delicate polished gold warms up burgundy and wine.' },
+    stylistNote: 'Delicate gold for burgundy and wine.' },
+
+  { id: 'cider-rosegold-wing-necklace',
+    name: 'Wing Pendant Necklace — Rose Gold',
+    retailer: 'cider', price: 9.90,
+    url: 'https://www.shopcider.com/goods/wing-pendant-necklace-115663906?style_id=2359601',
+    imageUrl: 'https://img1.shopcider.com/product/1791553266000-62nZN2.jpg', imageUrl2: '',
+    category: 'accessories', sub: 'jewelry', color: 'rose-gold', sizes: ['One Size'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
+    softWinter: { rating: 'good', note: 'Rose gold picks up pink and softens navy.' },
+    stylistNote: 'Rose gold for pink and navy.' },
+
+  { id: 'cider-gold-heart-hoops',
+    name: 'Heart Design Hoop Earrings — Gold',
+    retailer: 'cider', price: 6.90,
+    url: 'https://www.shopcider.com/goods/heart-design-hoop-earrings-114054171?style_id=2074907',
+    imageUrl: 'https://img1.shopcider.com/product/1730442926000-GY5xG8.jpg', imageUrl2: 'https://img1.shopcider.com/product/1730189213000-Hf8fXP.jpg',
+    category: 'accessories', sub: 'jewelry', color: 'gold', sizes: ['One Size'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
+    softWinter: { rating: 'good', note: 'Delicate polished gold warms up burgundy and wine.' },
+    stylistNote: 'Small gold hoops when the neckline is busy.' },
+
+  { id: 'cider-silver-tulip-necklace',
+    name: 'Tulip Pendant Necklace — Silver',
+    retailer: 'cider', price: 12.90,
+    url: 'https://www.shopcider.com/goods/tulip-pendant-necklace-114703445?style_id=2173078',
+    imageUrl: 'https://img1.shopcider.com/product/1750338521000-E4rXhR.jpg', imageUrl2: '',
+    category: 'accessories', sub: 'jewelry', color: 'white-gold', sizes: ['One Size'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
+    softWinter: { rating: 'good', note: 'White-gold tones stay crisp with blue and gray.' },
+    stylistNote: 'A white-gold-tone pendant for blue and gray.' }
 ];
