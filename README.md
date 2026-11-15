@@ -1,32 +1,29 @@
-# Soft Corporate Closet 🎀
+# Soft Corporate Closet
 
-A personal **shop-the-look** fashion board for cute Gen Z office outfits: fitted, feminine, petite- and curve-friendly, built around a **Bright Winter** palette. Static site, no build step, no backend. Personal state lives in your browser (`localStorage`).
+A fashion discovery and **shop-the-look** app for cute, polished office outfits: fitted, feminine, petite-friendly, and styled for a **Soft Winter** palette. Static site, no build step, no backend. Saved looks and pieces live in your browser (`localStorage`).
 
 ## Features
 
-- **Shop the Look** – outfit cards with pieces, color story, tags, estimated total, store mix, and Save / View / Shop / Remix.
-- **Outfit detail** – why it works, stylist note, every piece with store, price, tags and shop link, plus a per-store shopping list.
-- **Shuffle / Remix** – a real outfit generator: keeps the mood and a compatible formality, matches colors and metals, adds tights/layers for cold moods, lets you lock pieces, build around one item (e.g. the pink Docs) and "use more of what I own".
-- **Browse + filters** – by store, category, mood, color, formality, fit/style, saved/owned; for looks or individual pieces.
-- **Saved + Owned** – hearts, "I own this" toggles, "3 of 5 pieces already in your closet", recently viewed, saved remixes.
-- **Style DNA** – the fashion logic behind the recommendations.
+- **Explore** – editorial feed: New Looks, feature stories and a Soft Winter Workwear rail.
+- **Shop Looks** – large look cards, a Looks / Pieces switch, and a filter drawer (Mood, Store, Category, Color, Formality, Fit).
+- **Look details** – product photos, itemized reference prices, exact retailer links, Soft Winter and fit notes, stylist note, styling suggestions, Save Look, Remix Similar Look.
+- **Shuffle** – Surprise Me, Mood, Dress Code and optional Color Preference. Builds top + bottom + shoes from verified products only; lock a piece and shuffle the rest.
+- **Saved** – favorite looks, pieces and saved remixes.
+- **Style Preferences** – the Soft Winter and fit logic (button at the top right).
+
+Only real, approved products are shoppable. Tights, boots, bags, denim and jewelry appear as **styling suggestions** with no price or link. If a product has no known price, looks show a **known-items subtotal**, never a full total.
 
 ## Run locally
 
-Open `index.html` in a browser. Or serve the folder:
+Open `index.html` in a browser, or:
 
 ```
 python3 -m http.server 8000
 ```
 
-then visit <http://localhost:8000>.
-
 ## Deploy with GitHub Pages
 
-1. Merge/push this code to your default branch (e.g. `main`).
-2. Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch**.
-3. Pick the branch and `/ (root)`, then **Save**.
-4. The site appears at `https://<username>.github.io/soft-corporate-closet/` after a minute. All paths are relative, so no extra config is needed.
+Repo **Settings → Pages → Deploy from a branch**, pick the branch and `/ (root)`, Save. The site appears at `https://<username>.github.io/soft-corporate-closet/`. All paths are relative.
 
 ## Files
 
@@ -34,35 +31,28 @@ then visit <http://localhost:8000>.
 | --- | --- |
 | `index.html` | Page shell and navigation |
 | `styles.css` | All styling |
-| `app.js` | Views, filters, saving, shuffle engine, garment illustrations |
-| `data/items.js` | **Items**, stores, palette, moods, formality levels, fit tags |
-| `data/outfits.js` | **Outfits** |
+| `app.js` | Views, filters, saved state, shuffle engine |
+| `data/products.js` | **Products**, retailers, Soft Winter palette, moods, dress codes, fit tags |
+| `data/looks.js` | **Looks** |
+
+Saved state is stored separately from this data, under the `scc.v1` localStorage key.
 
 ## Editing data
 
 Field descriptions are in the comment at the top of each data file.
 
-**Shopping links** – every item has a `url: ''` line. Paste the real product link there. While it is empty, the button falls back to a store search for the item name ("Find at …"); stores without a search URL show "No link yet".
+**Add product photos** – set `imageUrl` (and optionally `imageUrl2`) on a product to the retailer's image URL, or save the photo into `assets/` and use `'assets/file.jpg'`. Empty or broken images show a neutral "Product image pending" placeholder.
 
-**Add a store** – add one line to `SCC.STORES` in `data/items.js`:
+**Prices** – `price` is a reference price. Use `null` for "Check price"; never guess.
 
-```js
-target: { name: 'Target', search: 'https://www.target.com/s?searchTerm=' },
-```
+**Sizes** – add only sizes you have verified, e.g. `sizes: ['S', 'M']`. Empty shows "see retailer".
 
-Then use `store: 'target'` on items. It appears in the filters automatically.
+**Add a product** – copy an entry in `SCC.PRODUCTS`, give it a unique `id`, and use the exact retailer `url`. `category` must be `tops`, `bottoms` or `shoes` for Shuffle to use it.
 
-**Add an item** – copy an existing entry in `SCC.ITEMS`, give it a unique `id`, and edit the fields. `shape` picks the illustration (list in the file header); `color` must be a key from `SCC.PALETTE`. To use a real photo, set `image` to a file in `assets/` (e.g. `'assets/pink-cardigan.jpg'`) or an image URL.
+**Add a store** – add one line to `SCC.RETAILERS`, then use that key as `retailer`.
 
-**Add an outfit** – copy an entry in `SCC.OUTFITS` (`data/outfits.js`) and list the item ids in `itemIds`. Set `featured: true` to show it on Home.
-
-**Mark something owned** – toggle it in the app, or set `owned: true` on the item to make it the default.
-
-## Notes
-
-- Saved looks, owned pieces and filters are stored per browser/device under the `scc.v1` localStorage key.
-- Starter prices are estimates and starter links are store searches, not specific products.
+**Add a look** – copy an entry in `SCC.LOOKS` and list product ids in `productIds`. Put non-product ideas in `suggestions`.
 
 ## Coming later
 
-A beauty/makeup section. Moods, palette and data files are kept separate from the UI so it can be added alongside the clothing data without a rebuild.
+A beauty section. Not included yet.
