@@ -79,19 +79,21 @@ main > section { margin-bottom: 2.6rem; }
 
 /* ---------- photos + placeholders ---------- */
 .photo { position: relative; display: block; width: 100%; height: 100%; min-height: 0; background: var(--gray); overflow: hidden; }
-.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; background: #f3f3f5; }
 .pending { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; padding: .6rem; text-align: center; color: var(--muted); background: linear-gradient(160deg, #f4f4f7, #e9e9ee); }
 .pending b { font-size: .62rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .pending small { font-size: .7rem; line-height: 1.3; max-width: 22ch; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.mosaic { display: grid; gap: 2px; width: 100%; height: 100%; background: #fff; }
-.mosaic.m2 { grid-template-columns: 1fr 1fr; }
-.mosaic.m3 { grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; } .mosaic.m3 .photo:first-child { grid-row: 1 / 3; }
+.mosaic { display: grid; gap: 2px; width: 100%; background: #fff; }
+/* each cell works out to 3:4, the shape of retailer product photos, so nothing important is cropped */
+.mosaic.m1 { aspect-ratio: 4 / 5; }
+.mosaic.m2 { aspect-ratio: 3 / 2; grid-template-columns: 1fr 1fr; }
+.mosaic.m3 { aspect-ratio: 9 / 8; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; } .mosaic.m3 .photo:first-child { grid-row: 1 / 3; }
 .thumb { display: block; width: 100%; aspect-ratio: 3 / 4; border-radius: var(--r); overflow: hidden; } .thumb .pending small { display: none; } .thumb .pending b { font-size: .5rem; letter-spacing: .08em; }
 
 /* ---------- look + product cards ---------- */
 .grid { display: grid; gap: 2rem 1rem; grid-template-columns: 1fr; }
 .look, .product { position: relative; min-width: 0; }
-.look-img, .product-img, .feature-img, .hero-img { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; aspect-ratio: 4 / 5; border-radius: var(--r); overflow: hidden; position: relative; }
+.look-img, .product-img, .feature-img, .hero-img { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--r); overflow: hidden; position: relative; }
 .look-body, .product-body { padding-top: .8rem; }
 .look-body h3 { font-size: 1.5rem; margin-bottom: .15em; }
 .look .btns { margin-top: .7rem; } .look .btns .btn.primary { flex: 1; }
@@ -115,10 +117,8 @@ main > section { margin-bottom: 2.6rem; }
 .hero { display: grid; gap: 1.4rem; }
 .hero-text { padding: 1.2rem 0 0; }
 .hero .lede { color: var(--char); max-width: 44ch; font-size: 1.02rem; margin-bottom: 1.2rem; }
-.hero-img { aspect-ratio: 5 / 4; }
 .caption { position: absolute; left: 12px; bottom: 12px; background: #fff; padding: .3rem .7rem; font-family: var(--serif); font-style: italic; font-size: .9rem; }
 .feature { display: grid; gap: 1rem; }
-.feature-img { aspect-ratio: 5 / 4; }
 .feature-text p:not(.eyebrow):not(.vibe):not(.meta) { color: var(--char); font-size: .95rem; }
 .feature .btns { margin-top: .9rem; }
 
@@ -135,25 +135,29 @@ legend, label { font-size: .68rem; font-weight: 600; letter-spacing: .14em; text
 /* ---------- shuffle ---------- */
 .shuffle { display: grid; gap: 1.6rem; }
 .controls { background: var(--soft); border-radius: var(--r); padding: 1rem; }
-.controls .wide { margin-bottom: 1.1rem; }
+.controls .wide { margin-top: .2rem; }
+legend span { font-weight: 400; letter-spacing: .04em; text-transform: none; margin-left: .3em; }
 .ctl-row { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin-bottom: 1rem; }
 select { display: block; width: 100%; min-height: 44px; margin-top: .4rem; padding: 0 .6rem; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-size: .9rem; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--ink); }
 .controls .btns { margin-bottom: .6rem; } .controls .btns .btn { flex: 1; white-space: nowrap; padding-inline: .8rem; }
-.result-img { aspect-ratio: 5 / 4; border-radius: var(--r); overflow: hidden; margin-bottom: 1rem; }
+.result-img { border-radius: var(--r); overflow: hidden; margin-bottom: 1rem; }
+.result-actions { margin: 1rem 0 .4rem; } .result-actions .btn { flex: 1 1 auto; white-space: nowrap; padding-inline: .8rem; }
+.result { scroll-margin-top: 70px; } #pieces { scroll-margin-top: 70px; outline: none; }
 .slots { list-style: none; padding: 0; margin: 1rem 0 0; }
 .slots li { display: grid; grid-template-columns: 64px 1fr auto; gap: .8rem; align-items: center; padding: .8rem 0; border-top: 1px solid var(--line); }
 .slots li.locked { background: linear-gradient(90deg, var(--pink), transparent 70%); }
 .slot-info { display: flex; flex-direction: column; min-width: 0; align-items: flex-start; } .slot-info strong { font-size: .88rem; font-weight: 500; line-height: 1.3; } .slot-info .eyebrow, .slot-info .meta { margin: 0; }
-.slot-btns { display: flex; gap: .3rem; }
 .suggest { background: var(--soft); border-radius: var(--r); padding: 1rem; margin-top: 1.2rem; }
 .suggest ul { list-style: none; padding: 0; margin: 0; } .suggest li { padding: .55rem 0; border-top: 1px solid var(--line); font-size: .92rem; } .suggest li .eyebrow { margin: 0; }
 
 /* ---------- style preferences ---------- */
-.style-grid { display: grid; gap: 1rem; }
-.card { background: var(--soft); border-radius: var(--r); padding: 1.3rem; }
-.card li { margin-bottom: .25em; font-size: .95rem; }
-.palette { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .8rem; margin: .9rem 0; font-size: .8rem; }
+.style { max-width: 720px; }
+.palette { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .8rem; margin: 0 0 1.4rem; font-size: .8rem; }
 .palette span { display: inline-flex; align-items: center; gap: .45rem; } .palette i { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(27,26,32,.15); flex: none; }
+.profile { margin: 0; }
+.profile div { display: grid; grid-template-columns: 6.5rem 1fr; gap: .8rem; padding: .85rem 0; border-top: 1px solid var(--line); }
+.profile dt { font-size: .68rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); padding-top: .25em; }
+.profile dd { margin: 0; font-size: .95rem; }
 
 /* ---------- dialogs: look sheet + filter drawer ---------- */
 dialog { border: 0; padding: 1.2rem 1rem calc(1.4rem + env(safe-area-inset-bottom)); width: 100%; max-width: 100%; max-height: 92vh; max-height: 92dvh; margin: auto 0 0; border-radius: 16px 16px 0 0; background: #fff; color: var(--ink); overflow-y: auto; overscroll-behavior: contain; }
@@ -187,9 +191,9 @@ dialog::backdrop { background: rgba(27,26,32,.45); }
   .grid.pieces { grid-template-columns: repeat(3, 1fr); }
   .rail { margin: 0 -1.5rem; padding-inline: 1.5rem; scroll-padding-left: 1.5rem; } .rail > * { flex-basis: 30%; } .rail .product { flex-basis: 22%; }
   .hero, .feature { grid-template-columns: 1fr 1fr; align-items: center; gap: 2rem; }
+  .grid .look-img { aspect-ratio: 9 / 8; display: flex; align-items: center; background: var(--soft); }
   .feature.flip .feature-img { order: 2; }
-  .hero-img, .feature-img { aspect-ratio: 4 / 5; }
-  .style-grid { grid-template-columns: repeat(2, 1fr); }
+  .palette { grid-template-columns: repeat(4, 1fr); }
   dialog { max-width: 720px; margin: auto; border-radius: 12px; padding: 1.6rem; max-height: 90vh; }
   #drawer { max-width: 440px; margin: 0 0 0 auto; height: 100%; max-height: 100%; border-radius: 0; padding-bottom: 0; }
   .gallery { margin: 0 0 1rem; padding: 0; scroll-padding-left: 0; } .gallery .photo { flex: 1 0 30%; } .gallery.g1 .photo { flex-basis: 50%; max-width: 50%; }
@@ -210,7 +214,6 @@ dialog::backdrop { background: rgba(27,26,32,.45); }
   .hero { grid-template-columns: 1fr 1.1fr; gap: 3.5rem; } .feature { gap: 3.5rem; }
   .shuffle { grid-template-columns: 360px 1fr; align-items: start; gap: 2.5rem; }
   .controls { position: sticky; top: 90px; }
-  .style-grid { grid-template-columns: repeat(3, 1fr); }
   #toast { bottom: 28px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
