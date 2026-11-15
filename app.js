@@ -20,7 +20,7 @@
 
   /* ---------------- saved state (localStorage) — kept separate from product/look data ---------------- */
   const KEY = 'scc.v1';   // unchanged since V1 so favorites carry over
-  const DEFAULTS = { v: 4, saved: [], savedProducts: [], recent: [], filters: {}, custom: [], mode: 'looks' };
+  const DEFAULTS = { v: 5, saved: [], savedProducts: [], recent: [], filters: {}, custom: [], mode: 'looks' };
   let S;
   try { S = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { S = Object.assign({}, DEFAULTS); }
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode: state lives in memory */ } };
@@ -34,9 +34,9 @@
     S.saved = [...new Set(arr(S.saved).map(id => LEGACY[id] || id))].filter(getLook);
     S.recent = [...new Set(arr(S.recent).map(id => LEGACY[id] || id))].filter(getLook);
     S.savedProducts = arr(S.savedProducts).filter(id => byId[id]);
-    if (S.v !== 4) S.filters = {};
+    if (S.v !== 5) S.filters = {};
     delete S.owned; delete S.preferOwned; delete S.filtersOpen;
-    S.v = 4; persist();
+    S.v = 5; persist();
   })();
   const isSaved = id => S.saved.includes(id);
   const isSavedP = id => S.savedProducts.includes(id);
@@ -68,12 +68,11 @@
 
   /* ---------------- photos ---------------- */
   // Cider's image host can serve a resized copy, which keeps pages fast on mobile.
-  const sized = (url, w) => (/^https:\/\/img1\.shopcider\.com\//.test(url) ? `${url}?x-oss-process=image/resize,m_lfit,w_${w}/quality,Q_80/format,webp` : url);
+  const sized = (url, w) => (/^https:\/\/img1\.shopcider\.com\//.test(url) ? `${url}?x-oss-process=image/resize,m_lfit,w_${w}/quality,Q_80/format,webp`
+    : /cdn\.shopify\.com\/|\/cdn\/shop\//.test(url) ? `${url}${url.includes('?') ? '&' : '?'}width=${w}` : url);
   const photo = (p, w = 640, second) => `<span class="photo"><img src="${esc(sized(second ? p.imageUrl2 : p.imageUrl, w))}" alt="${esc(p.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
   document.addEventListener('error', e => { if (e.target.tagName === 'IMG' && e.target.closest('.photo')) e.target.remove(); }, true);
   const mosaic = (ps, w = 480) => `<span class="mosaic m${Math.min(ps.length, 4)}">${ps.slice(0, 4).map(p => photo(p, w)).join('')}</span>`;
-  const SW = { excellent: 'Soft Winter: excellent', good: 'Soft Winter: good', neutral: 'Grounding neutral' };
-  const swBadge = p => (p.softWinter ? `<span class="badge sw-${esc(p.softWinter.rating)}">${SW[p.softWinter.rating] || 'Soft Winter'}</span>` : '');
   const shopLink = (p, cls = 'btn sm primary') => `<a class="${cls}" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Shop at ${esc(storeName(p.retailer))} <span aria-hidden="true">↗</span></a>`;
   const heartBtn = (act, id, on, name) => `<button class="heart ${on ? 'on' : ''}" data-act="${act}" data-id="${id}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Save'} ${esc(name)}">${I.heart(on)}</button>`;
   const kicker = o => (o.custom ? 'Your remix' : (STYLES[o.style] || {}).label || OCCASIONS[(o.occasions || [])[0]] || 'Look');
@@ -98,10 +97,10 @@
       ${heartBtn('save-p', p.id, isSavedP(p.id), p.name)}
       <a class="product-img" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(p.name)} at ${esc(storeName(p.retailer))}">${photo(p, compact ? 400 : 640)}</a>
       <div class="card-body">
-        <p class="eyebrow">${esc(storeName(p.retailer))} · ${esc(CATEGORIES[p.category] || p.category)}</p>
+        <p class="eyebrow">${esc(storeName(p.retailer))}</p>
         <h3>${esc(p.name)}</h3>
         <p class="price">${priceText(p)}</p>
-        ${compact ? '' : `${swBadge(p)}${shopLink(p, 'btn sm wide')}`}
+        ${compact ? '' : `<a class="btn sm wide" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" aria-label="Shop ${esc(p.name)} at ${esc(storeName(p.retailer))}">Shop <span aria-hidden="true">↗</span></a>`}
       </div>
     </article>`;
   }
@@ -110,34 +109,41 @@
   const grid = looks => `<div class="grid">${looks.map(o => lookCard(o)).join('')}</div>`;
   const DISCLAIMER = '<p class="disclaimer">Prices and sizes are reference values from when each listing was read. Check the retailer for current price and availability.</p>';
 
-  /* ---------------- filters ---------------- */
-  const usedStores = Object.keys(RETAILERS).filter(k => PRODUCTS.some(p => p.retailer === k));
+  /* ---------------- filters ----------------
+     Quick type chips (All / Clothing / Shoes / Accessories) plus a small drawer (Store, Color, Occasion).
+     Only values that exist in the catalog and would return results are offered. */
+  const TYPES = { clothing: ['tops', 'bottoms', 'dresses'], shoes: ['shoes'], accessories: ['accessories'] };
+  const TYPE_LABEL = { all: 'All', clothing: 'Clothing', shoes: 'Shoes', accessories: 'Accessories' };
   const GROUPS = [
-    ['style', 'Style', Object.keys(STYLES).map(k => [k, STYLES[k].label])],
-    ['category', 'Category', Object.entries(CATEGORIES).filter(([k]) => PRODUCTS.some(p => p.category === k))],
-    ['color', 'Color', Object.keys(COLOR_GROUPS).map(k => [k, COLOR_GROUPS[k].label])]
-  ].concat(usedStores.length > 1 ? [['store', 'Store', usedStores.map(k => [k, RETAILERS[k].name])]] : []);
-  const DRAWER_GROUPS = GROUPS.filter(g => g[0] !== 'style');   // Style has its own chip row on the page
-  const sel = g => S.filters[g] || [];
-  const activeCount = groups => groups.reduce((n, g) => n + sel(g[0]).length, 0);
+    ['store', 'Store', Object.keys(RETAILERS).map(k => [k, RETAILERS[k].name])],
+    ['color', 'Color', Object.keys(COLOR_GROUPS).map(k => [k, COLOR_GROUPS[k].label])],
+    ['occasion', 'Occasion', Object.entries(OCCASIONS)]
+  ];
+  const typeSel = () => (TYPES[S.filters.type] ? S.filters.type : 'all');
+  const sel = (g, f = S.filters) => (Array.isArray(f[g]) ? f[g] : []);
   const any = (a, b) => !a.length || a.some(x => b.includes(x));
   const colorGroups = p => Object.keys(COLOR_GROUPS).filter(k => COLOR_GROUPS[k].colors.includes(p.color));
   const stylesOf = p => [...new Set(LOOKS.filter(o => o.productIds.includes(p.id)).map(o => o.style))];
-  function lookMatches(o) {
+  function lookMatches(o, f = S.filters) {
     const ps = lookProducts(o);
-    return any(sel('style'), [o.style]) && any(sel('category'), ps.map(p => p.category)) &&
-      any(sel('color'), ps.flatMap(colorGroups)) && any(sel('store'), ps.map(p => p.retailer));
+    return any(sel('style', f), [o.style]) && any(sel('store', f), ps.map(p => p.retailer)) &&
+      any(sel('color', f), ps.flatMap(colorGroups)) && any(sel('occasion', f), o.occasions || []);
   }
-  const productMatches = p => any(sel('style'), stylesOf(p)) && any(sel('category'), [p.category]) && any(sel('color'), colorGroups(p)) && any(sel('store'), [p.retailer]);
+  const productMatches = (p, f = S.filters) => (!TYPES[f.type] || TYPES[f.type].includes(p.category)) && any(sel('style', f), stylesOf(p)) &&
+    any(sel('store', f), [p.retailer]) && any(sel('color', f), colorGroups(p)) && any(sel('occasion', f), p.occasions);
+  const results = f => (S.mode === 'pieces' ? PRODUCTS.filter(p => productMatches(p, f)).length : allLooks().filter(o => lookMatches(o, f)).length);
+  const activeCount = () => GROUPS.reduce((n, g) => n + sel(g[0]).length, 0);
+  // values worth offering: already selected, or would return at least one result alongside the other groups
+  const offered = g => g[2].filter(([k]) => sel(g[0]).includes(k) || results(Object.assign({}, S.filters, { [g[0]]: [k] })) > 0);
   function chip(group, id, label) {
     const on = sel(group).includes(id);
     return `<button class="chip ${on ? 'on' : ''}" data-act="filter" data-group="${group}" data-value="${id}" aria-pressed="${on}">${esc(label)}</button>`;
   }
   const drawer = $('#drawer');
   function drawerHTML() {
-    const n = S.mode === 'pieces' ? PRODUCTS.filter(productMatches).length : allLooks().filter(lookMatches).length;
+    const n = results(S.filters);
     return `<div class="sheet-head"><h2 id="drawer-title">Filters</h2><button class="icon close" data-act="close-drawer" aria-label="Close filters">${I.close}</button></div>
-      ${DRAWER_GROUPS.map(g => `<fieldset><legend>${g[1]}</legend><div class="chips">${g[2].map(v => chip(g[0], v[0], v[1])).join('')}</div></fieldset>`).join('')}
+      ${GROUPS.map(g => { const opts = offered(g); return opts.length > 1 || sel(g[0]).length ? `<fieldset><legend>${g[1]}</legend><div class="chips">${opts.map(v => chip(g[0], v[0], v[1])).join('')}</div></fieldset>` : ''; }).join('')}
       <div class="drawer-foot"><button class="btn" data-act="clear">Clear all</button><button class="btn primary" data-act="close-drawer">Show ${n} ${S.mode === 'pieces' ? 'piece' : 'look'}${n === 1 ? '' : 's'}</button></div>`;
   }
 
@@ -166,10 +172,11 @@
     const grp = COLOR_GROUPS[R.color];
     const okLock = c => locked.every(r => c[r] === R.slots[r]);
     const okPattern = c => parts(c).filter(p => p.pattern).length <= 1;                                          // one pattern at a time
-    const okHarmony = c => { const f = parts(c).map(fam); return !(f.includes('blue') && f.includes('berry')); };  // no unrelated accents
+    const okHarmony = c => { const f = parts(c).map(fam); return !(f.includes('blue') && f.includes('berry')); };  // no unrelated accents (warm browns and tans go with everything)
+    const okBoots = c => !byId[c.shoes].tall || parts(c).some(isShort);                                            // knee-high boots go with skirts, skorts and dresses
     const okOccasion = c => ROLES.every(r => !c[r] || locked.includes(r) || byId[c[r]].occasions.includes(R.occasion));
     const okColor = c => !grp || parts(c).some(p => grp.colors.includes(p.color));
-    const tiers = [[okLock, okPattern, okHarmony, okOccasion, okColor, ''], [okLock, okPattern, okHarmony, okOccasion, 'color'], [okLock, okPattern, okHarmony, 'occasion'], [okLock, 'pattern']];
+    const tiers = [[okLock, okPattern, okHarmony, okBoots, okOccasion, okColor, ''], [okLock, okPattern, okHarmony, okBoots, okOccasion, 'color'], [okLock, okPattern, okHarmony, 'occasion'], [okLock, 'pattern']];
     let pool = [], relaxed = '';
     for (const t of tiers) { relaxed = t[t.length - 1]; pool = ALL_COMBOS.filter(c => t.slice(0, -1).every(f => f(c))); if (pool.length) break; }
     if (!pool.length) return;
@@ -178,9 +185,9 @@
     const fresh = pool.filter(c => shown(c) === oldest);
     const score = c => {
       const ps = parts(c), main = ps[0], shoes = ps[ps.length - 1];
-      return ps.reduce((n, p) => n + (p.vibes.includes(vibe) ? 2 : 0) + ({ excellent: 1, good: 0.5 }[p.softWinter.rating] || 0) +
+      return ps.reduce((n, p) => n + (p.vibes.includes(vibe) ? 2 : 0) + ({ excellent: 1, good: 0.5 }[(p.softWinter || {}).rating] || 0.7) +
         (p.fit.includes('waist') ? 0.6 : 0) + (p.fit.includes('petite') ? 0.4 : 0) + (p.fit.includes('feminine') ? 0.2 : 0) +
-        (grp && grp.colors.includes(p.color) ? 1 : 0), Math.random() * 4) + (fam(shoes) !== 'neutral' && fam(shoes) === fam(main) ? 1.5 : 0) + (c.dress ? 1.5 : 0);
+        (grp && grp.colors.includes(p.color) ? 1 : 0), Math.random() * 4) + (fam(shoes) !== 'neutral' && fam(shoes) === fam(main) ? 1.5 : 0) + (c.dress ? 1.5 : 0) + (shoes.kind ? 1 : 0);   // lean toward boots in winter
     };
     const best = fresh.map(c => [score(c), c]).sort((a, b) => b[0] - a[0])[0][1];
     R.slots = Object.assign({}, best); R.shown[comboKey(best)] = ++R.tick; R.usedVibe = vibe; R.relaxed = relaxed; R.savedId = '';
@@ -193,7 +200,8 @@
     const metal = f.includes('berry') ? 'gold' : fam(main) === 'blue' || (fam(main) === 'neutral' && !f.includes('pink')) ? 'white-gold' : 'rose-gold';
     const jewelry = acc('jewelry').filter(p => p.color === metal);
     if (jewelry.length) out.push(jewelry[seed % jewelry.length]); else if (acc('jewelry').length) out.push(acc('jewelry')[0]);
-    if ((occasion === 'meeting' || occasion === 'dressy' || main.category === 'dresses') && acc('bag').length) out.push(acc('bag')[0]);
+    const bags = acc('bag'), bag = bags.find(b => fam(b) === 'pink' && f.includes('pink') && !f.includes('berry')) || bags.find(b => fam(b) === 'berry') || bags[0];
+    if ((occasion === 'meeting' || occasion === 'dressy' || main.category === 'dresses' || f.includes('pink')) && bag) out.push(bag);
     if (ps.some(isShort) && acc('tights').length) out.push(acc('tights')[0]);   // last, so the collage leads with the outfit
     return out;
   }
@@ -238,7 +246,7 @@
         <div class="hero-text">
           <p class="eyebrow">The Soft Winter workwear edit</p>
           <h1>Get dressed for work, but make it cute.</h1>
-          <p class="lede">${LOOKS.length} shoppable office looks in cool, softened color. Fitted, feminine and petite-friendly.</p>
+          <p class="lede">${LOOKS.length} shoppable office looks and ${PRODUCTS.length} pieces from ${[...new Set(PRODUCTS.map(p => storeName(p.retailer)))].join(', ')}. Fitted, feminine and petite-friendly.</p>
           <div class="btns"><a class="btn primary lg" href="#shop">Shop the looks</a><button class="btn lg" data-act="style-go">${I.shuffle}Style my outfit</button></div>
         </div>
         <button class="hero-img" data-act="view" data-id="${lead.id}" aria-label="View ${esc(lead.name)}">${mosaic(lookProducts(lead), 640)}<span class="caption">${esc(lead.name)}</span></button>
@@ -246,31 +254,34 @@
       <nav class="style-nav" aria-label="Styles">${rail(keys.map(k => `<button class="chip" data-act="quick-style" data-value="${k}">${esc(STYLES[k].label)}</button>`).join(''), 'chips-rail')}</nav>
       <section aria-label="New this week"><div class="sec-head"><h2>New this week</h2><a class="link" href="#shop">All ${LOOKS.length} looks</a></div>
         ${rail(fresh.map(o => lookCard(o, true)).join(''))}</section>
+      ${pieces('Boots for winter', 'Sleek ankle boots, knee-highs (including wide calf), lace-ups and cozy boots.', PRODUCTS.filter(p => p.category === 'shoes' && p.kind))}
       ${keys.slice(0, 2).map(styleSection).join('')}
       ${pieces('Knits, tees and dresses', 'Wrap, ruched, V and scoop necklines in burgundy, navy, pink and blue.', cat('tops', 'dresses'))}
       ${keys.slice(2, 4).map(styleSection).join('')}
       ${pieces('Skirts, trousers and denim', 'High waists, short hems and petite lengths.', cat('bottoms'))}
       ${keys.slice(4).map(styleSection).join('')}
-      ${pieces('Shoes and finishing touches', 'Mary Janes, flats, tights and delicate jewelry.', cat('shoes', 'accessories'))}
+      ${pieces('Flats and finishing touches', 'Mary Janes, sneakers, bags, tights and delicate jewelry.', PRODUCTS.filter(p => (p.category === 'shoes' && !p.kind) || p.category === 'accessories'))}
       ${DISCLAIMER}`;
   }
 
   function viewShop() {
-    const looks = allLooks().filter(lookMatches), pieces = PRODUCTS.filter(productMatches), n = activeCount(DRAWER_GROUPS);
-    const isLooks = S.mode !== 'pieces';
+    const looks = allLooks().filter(o => lookMatches(o)), pieces = PRODUCTS.filter(p => productMatches(p)), n = activeCount();
+    const isLooks = S.mode !== 'pieces', t = typeSel();
     const clear = '<button class="btn" data-act="clear">Clear filters</button>';
+    const styleChip = sel('style').map(k => STYLES[k] ? `<button class="chip on" data-act="filter" data-group="style" data-value="${k}" aria-label="Remove ${esc(STYLES[k].label)} filter">${esc(STYLES[k].label)} ✕</button>` : '').join('');
     return `<section><div class="sec-head"><h1>Shop Looks</h1></div>
       <div class="toolbar">
         <div class="seg" role="group" aria-label="Show">
-          <button data-act="mode" data-value="looks" aria-pressed="${isLooks}">Looks (${looks.length})</button>
-          <button data-act="mode" data-value="pieces" aria-pressed="${!isLooks}">Pieces (${pieces.length})</button>
+          <button data-act="mode" data-value="looks" aria-pressed="${isLooks}">Looks</button>
+          <button data-act="mode" data-value="pieces" aria-pressed="${!isLooks}">Pieces</button>
         </div>
         <button class="btn filter-btn" data-act="open-drawer">${I.filter}Filters${n ? ` <b>${n}</b>` : ''}</button>
       </div>
-      ${rail(GROUPS[0][2].map(v => chip('style', v[0], v[1])).join(''), 'chips-rail')}
+      ${rail(Object.keys(TYPE_LABEL).map(k => `<button class="chip ${(isLooks ? 'all' : t) === k ? 'on' : ''}" data-act="type" data-value="${k}" aria-pressed="${(isLooks ? 'all' : t) === k}">${TYPE_LABEL[k]}</button>`).join('') + styleChip, 'chips-rail')}
+      <p class="count">${isLooks ? `${looks.length} look${looks.length === 1 ? '' : 's'}` : `${pieces.length} piece${pieces.length === 1 ? '' : 's'}`}</p>
       ${isLooks
-        ? (looks.length ? grid(looks) : empty('No looks match those filters', 'Try removing a filter or two.', clear))
-        : (pieces.length ? `<div class="grid pieces">${pieces.map(p => productCard(p)).join('')}</div>` : empty('No pieces match those filters', 'Try removing a filter or two.', clear))}
+        ? (looks.length ? grid(looks) : empty('No looks match those filters', 'Try removing a filter.', clear))
+        : (pieces.length ? `<div class="grid pieces">${pieces.map(p => productCard(p)).join('')}</div>` : empty('No pieces match those filters', 'Try removing a filter.', clear))}
       ${DISCLAIMER}
       </section>`;
   }
@@ -355,10 +366,9 @@
       <h3>Shop the pieces</h3>
       <ul class="pieces-list">${ps.map(p => `<li>
           <span class="thumb">${photo(p, 240)}</span>
-          <div class="pl-info"><span class="eyebrow">${esc(storeName(p.retailer))} · ${esc(CATEGORIES[p.category] || p.category)}</span>
+          <div class="pl-info"><span class="eyebrow">${esc(storeName(p.retailer))} · ${esc(p.kind || CATEGORIES[p.category] || p.category)}</span>
             <strong>${esc(p.name)}</strong>
             <span class="meta"><i class="dot" style="background:${color(p.color).hex}"></i>${esc(color(p.color).name)}${p.sizes && p.sizes.length ? ' · ' + esc(p.sizes.join(' ')) : ''}</span>
-            ${swBadge(p)}
             <span class="small">${esc(p.stylistNote || '')}</span>
           </div>
           <div class="pl-act"><span class="price">${priceText(p)}</span>${shopLink(p)}
@@ -428,7 +438,8 @@
     remix: d => { const o = getLook(d.id); if (!o) return; remixLook(o); closeSheet(); go('shuffle'); window.scrollTo(0, 0); },
     filter: d => { const a = sel(d.group).slice(), i = a.indexOf(d.value); if (i < 0) a.push(d.value); else a.splice(i, 1); S.filters[d.group] = a; persist(); render(true); },
     clear: () => { S.filters = {}; persist(); render(true); },
-    mode: d => { S.mode = d.value; persist(); render(true); },
+    mode: d => { S.mode = d.value; if (d.value === 'looks') delete S.filters.type; persist(); render(true); },
+    type: d => { if (d.value === 'all') delete S.filters.type; else { S.filters.type = d.value; S.mode = 'pieces'; } persist(); render(true); },
     'quick-style': d => { S.filters = { style: [d.value] }; S.mode = 'looks'; persist(); go('shop'); },
     'pieces-go': () => { S.filters = {}; S.mode = 'pieces'; persist(); go('shop'); },
     'style-go': () => { R.locks = {}; R.from = ''; generate(); go('shuffle'); },

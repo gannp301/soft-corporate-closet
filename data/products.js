@@ -1,6 +1,7 @@
 /* ============================================================
    Soft Corporate Closet — PRODUCT DATA
-   Every product here is a real Cider listing with a real photo, link and reference price.
+   Every product here is a real retailer listing (Cider, Steve Madden, Princess Polly) with a real photo,
+   link and reference price. Steve Madden names add a short type description after the retailer's style name.
    Products without a photo are not allowed in the catalog (the app also hides any that slip in).
 
    PRODUCT FIELDS
@@ -12,6 +13,8 @@
    imageUrl    retailer product photo (required)
    imageUrl2   optional second photo (usually on-model)
    category    tops | bottoms | dresses | shoes | accessories
+   kind        optional short type shown in details, e.g. 'Ankle boots'
+   tall        shoes only: true for knee-high boots (Shuffle pairs them with short hems only)
    sub         accessories only: tights | bag | jewelry
    color       key from PALETTE
    pattern     optional: true for stripes / houndstooth (Shuffle never mixes two patterns)
@@ -19,7 +22,7 @@
    occasions   keys from OCCASIONS this piece suits
    vibes       keys from VIBES
    fit         fit traits used automatically by Shuffle: petite, curve, waist, fitted, feminine, winter
-   softWinter  { rating: 'excellent' | 'good' | 'neutral', note }
+   softWinter  optional { rating: 'excellent' | 'good' | 'neutral', note } — background guidance for Shuffle, never shown
    stylistNote how to wear it
 
    Prices, sizes and availability change: they are reference values, not live data.
@@ -30,10 +33,12 @@ window.SCC = window.SCC || {};
 SCC.RETAILERS = {
   cider: { name: 'Cider' },
   shein: { name: 'SHEIN' },
-  amazon: { name: 'Amazon' }
+  amazon: { name: 'Amazon' },
+  stevemadden: { name: 'Steve Madden' },
+  princesspolly: { name: 'Princess Polly' }
 };
 
-/* ---- SOFT WINTER PALETTE (cool, softened, moderate contrast) ---- */
+/* ---- PALETTE: Soft Winter colors plus the warm browns and tans welcome in boots ---- */
 SCC.PALETTE = {
   'soft-navy':  { name: 'Soft navy',        hex: '#2c3655', family: 'navy' },
   'charcoal':   { name: 'Charcoal',         hex: '#4b4e58', family: 'neutral' },
@@ -49,6 +54,8 @@ SCC.PALETTE = {
   'sky-blue':   { name: 'Sky blue',         hex: '#a3c6e6', family: 'blue' },
   'dusty-blue': { name: 'Dusty blue',       hex: '#5d7aa8', family: 'blue' },
   'lavender':   { name: 'Smoky lavender',   hex: '#b5adc9', family: 'lavender' },
+  'brown':      { name: 'Chocolate brown',  hex: '#5a3a2c', family: 'warm' },
+  'tan':        { name: 'Tan / chestnut',   hex: '#b9895e', family: 'warm' },
   'gold':       { name: 'Gold',             hex: '#d9b45a', family: 'metal' },
   'white-gold': { name: 'White gold',       hex: '#cfd3da', family: 'metal' },
   'rose-gold':  { name: 'Rose gold',        hex: '#e3ab9f', family: 'metal' }
@@ -82,7 +89,8 @@ SCC.COLOR_GROUPS = {
   'navy':       { label: 'Navy',             colors: ['soft-navy'] },
   'pink-blue':  { label: 'Pink / Blue',      colors: ['icy-pink', 'cool-blush', 'icy-blue', 'sky-blue', 'dusty-blue'] },
   'burgundy':   { label: 'Burgundy / Berry', colors: ['burgundy', 'berry'] },
-  'black-gray': { label: 'Black / Gray',     colors: ['soft-black', 'charcoal', 'cool-gray'] }
+  'black-gray': { label: 'Black / Gray',     colors: ['soft-black', 'charcoal', 'cool-gray'] },
+  'brown-tan':  { label: 'Brown / Tan',      colors: ['brown', 'tan'] }
 };
 
 SCC.CATEGORIES = { tops: 'Tops', bottoms: 'Bottoms', dresses: 'Dresses', shoes: 'Shoes', accessories: 'Accessories' };
@@ -444,5 +452,150 @@ SCC.PRODUCTS = [
     category: 'accessories', sub: 'jewelry', color: 'white-gold', sizes: ['One Size'],
     occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
     softWinter: { rating: 'good', note: 'White-gold tones stay crisp with blue and gray.' },
-    stylistNote: 'A white-gold-tone pendant for blue and gray.' }
+    stylistNote: 'A white-gold-tone pendant for blue and gray.' },
+
+  /* ---------------- V5: boots and new retailers ---------------- */
+  { id: 'sm-kimmens-black',
+    name: 'Kimmens Ankle Boot — Black',
+    retailer: 'stevemadden', price: 119.95,
+    url: 'https://www.stevemadden.com/products/kimmens-black',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_KIMMENS_BLACK-LEATHER_01_7f5155ed-59b9-432e-aa3f-a29560428e44.jpg?v=1786574442', imageUrl2: '',
+    category: 'shoes', kind: 'Ankle boots', color: 'soft-black', sizes: [],
+    occasions: ['everyday', 'meeting', 'dressy', 'friday'], vibes: ['sleek', 'cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'A slim kitten-heel ankle boot. Tucks neatly under flares and trousers.' },
+
+  { id: 'sm-jamiyah-brown-suede',
+    name: 'Jamiyah Ankle Boot — Brown Suede',
+    retailer: 'stevemadden', price: 149.95,
+    url: 'https://www.stevemadden.com/products/jamiyah-brown-suede',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_JAMIYAH-JAYLIN_BROWN-SUEDE01.jpg?v=1782397388', imageUrl2: '',
+    category: 'shoes', kind: 'Ankle boots', color: 'brown', sizes: [],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: ['cozy', 'sleek'], fit: ['feminine', 'winter'],
+    stylistNote: 'Chocolate suede softens black, navy and denim.' },
+
+  { id: 'sm-harden-brown',
+    name: 'Harden Heeled Ankle Boot — Brown Leather',
+    retailer: 'stevemadden', price: 169.95,
+    url: 'https://www.stevemadden.com/products/harden-brown-leather',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_HARDEN_BROWN-LEATHER01_7a16004a-d703-45e8-b6bf-f3ad8674ce3b.jpg?v=1787605004', imageUrl2: '',
+    category: 'shoes', kind: 'Ankle boots', color: 'brown', sizes: [],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cozy'], fit: ['feminine', 'winter'],
+    stylistNote: 'A block heel adds height under tailored trousers.' },
+
+  { id: 'sm-morals-pink',
+    name: 'Morals Lace-Up Heeled Boot — Pink Nubuck',
+    retailer: 'stevemadden', price: 169.95,
+    url: 'https://www.stevemadden.com/products/morals-pink-nubuck',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_MORALS_PINK-LEATHER01_d12c8fb2-8cf9-4948-a5d7-3a3d02a5c40a.jpg?v=1784039070', imageUrl2: '',
+    category: 'shoes', kind: 'Lace-up boots', color: 'cool-blush', sizes: [],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'Pink lace-ups with a slim heel: the statement piece. Keep everything else simple.' },
+
+  { id: 'sm-jendi-black',
+    name: 'Jendi Knee-High Boot — Black Leather',
+    retailer: 'stevemadden', price: 199.95,
+    url: 'https://www.stevemadden.com/products/jendi-black-leather',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_JENDI-JANET_BLACK-LEATHER01.jpg?v=1783368882', imageUrl2: '',
+    category: 'shoes', kind: 'Knee-high boots', tall: true, color: 'soft-black', sizes: [],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek'], fit: ['feminine', 'winter'],
+    stylistNote: 'A slim heel and a clean shaft. Made for mini skirts and tights.' },
+
+  { id: 'sm-labelle-wide-calf',
+    name: 'Labelle Knee-High Boot — Black, Wide Calf',
+    retailer: 'stevemadden', price: 129.95,
+    url: 'https://www.stevemadden.com/products/labelle-w-black',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_LABELLE-W_BLACK01_28241c79-767f-45c3-8164-ac4d94e499fa.jpg?v=1782825544', imageUrl2: '',
+    category: 'shoes', kind: 'Knee-high boots', tall: true, color: 'soft-black', sizes: [],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cozy', 'cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'Wide-calf fit with a low lug sole. Comfortable all day with skirts and tights.' },
+
+  { id: 'sm-lovelies-cherry',
+    name: 'Lovelies Knee-High Boot — Dark Cherry Leather',
+    retailer: 'stevemadden', price: 229.95,
+    url: 'https://www.stevemadden.com/products/lovelies-wine-leather',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_LOVELIES_WINE-LEATHER01.jpg?v=1785333627', imageUrl2: '',
+    category: 'shoes', kind: 'Knee-high boots', tall: true, color: 'burgundy', sizes: [],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'Dark cherry boots with a wine or navy outfit look rich and intentional.' },
+
+  { id: 'sm-notta-black',
+    name: 'Notta Stretch Knee-High Boot — Black',
+    retailer: 'stevemadden', price: 129.95,
+    url: 'https://www.stevemadden.com/products/notta-black',
+    imageUrl: 'https://cdn.shopify.com/s/files/1/2170/8465/files/STEVEMADDEN_SHOES_NOTTA_BLACK01.jpg?v=1782488962', imageUrl2: '',
+    category: 'shoes', kind: 'Knee-high boots', tall: true, color: 'soft-black', sizes: [],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'A fitted stretch shaft and a small heel keep the leg line long.' },
+
+  { id: 'pp-madisson-brown',
+    name: 'Madisson Knee High Boots Brown',
+    retailer: 'princesspolly', price: 100.00,
+    url: 'https://us.princesspolly.com/products/madisson-knee-high-boots-brown',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/1_b384799f-8793-4415-a5e5-24ecdbab15e6.jpg?v=1770346705', imageUrl2: '',
+    category: 'shoes', kind: 'Knee-high boots', tall: true, color: 'tan', sizes: ['5', '6', '7', '8', '9', '10'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cozy', 'cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'A low-heeled riding boot in warm cognac. Lovely with navy, denim and tights.' },
+
+  { id: 'pp-serene-burgundy',
+    name: 'Serene Faux Suede Pointed Toe Ankle Boots Burgundy',
+    retailer: 'princesspolly', price: 56.00,
+    url: 'https://us.princesspolly.com/products/serene-faux-suede-pointed-toe-ankle-boots-burgundy',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/1_2e14624a-959b-4b93-b01e-402362549259.jpg?v=1785903554', imageUrl2: '',
+    category: 'shoes', kind: 'Ankle boots', color: 'burgundy', sizes: ['5', '6', '7', '8', '9', '10'],
+    occasions: ['everyday', 'meeting', 'dressy'], vibes: ['sleek', 'cute'], fit: ['feminine'],
+    stylistNote: 'A sleek burgundy kitten-heel boot that echoes wine and berry pieces.' },
+
+  { id: 'pp-pink-cardigan',
+    name: 'Old Burlington Knit Cardigan Pink',
+    retailer: 'princesspolly', price: 65.00,
+    url: 'https://us.princesspolly.com/products/old-burlington-knit-cardigan-pink',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/1-modelinfo-elly-us2_8cc026d8-15fb-4e76-b2d6-52f17a1c42c7.jpg?v=1739830090', imageUrl2: '',
+    category: 'tops', color: 'cool-blush', sizes: ['XS/S', 'S/M', 'M/L', 'L/XL'],
+    occasions: ['everyday', 'friday'], vibes: ['cute', 'cozy'], fit: ['fitted', 'feminine', 'winter'],
+    stylistNote: 'Button it up and wear it as a top with high-waisted denim.' },
+
+  { id: 'pp-flared-pants-petite',
+    name: 'Kinkirk Flared Pants Black Petite',
+    retailer: 'princesspolly', price: 69.00,
+    url: 'https://us.princesspolly.com/products/kinkirk-flared-pants-black-petite',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/0-modelinfo-sasha-us2_f4f8fa5e-9d7e-400d-be9c-dcc03db0d579.jpg?v=1778552930', imageUrl2: '',
+    category: 'bottoms', color: 'soft-black', sizes: ['0', '2', '4', '6', '8', '10', '12'],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: ['sleek', 'cozy'], fit: ['petite', 'curve'],
+    stylistNote: 'Petite-length flares. A heeled ankle boot keeps the hem off the floor.' },
+
+  { id: 'pp-ravyn-skort-petite',
+    name: 'Ravyn Skort Black Petite',
+    retailer: 'princesspolly', price: 19.50,
+    url: 'https://us.princesspolly.com/products/ravyn-skort-black-petite',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/0-modelinfo-eva-us2_2edf92f2-3754-470a-8fe0-65674b8596ea_1.jpg?v=1719878617', imageUrl2: '',
+    category: 'bottoms', color: 'soft-black', sizes: ['10', '12'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute', 'sleek'], fit: ['petite', 'feminine'],
+    stylistNote: 'A petite-length skort that pairs well with knee-high boots.' },
+
+  { id: 'pp-fabiola-navy-dress',
+    name: 'Fabiola Collared Mini Dress Navy',
+    retailer: 'princesspolly', price: 48.00,
+    url: 'https://us.princesspolly.com/products/fabiola-collared-mini-dress-navy',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/0-modelinfo-natalya-us2_7ce1409c-799b-4d36-9d37-a6598d9c1bf1.jpg?v=1754542760', imageUrl2: '',
+    category: 'dresses', color: 'soft-navy', sizes: ['2', '6', '8', '10'],
+    occasions: ['everyday', 'friday', 'dressy'], vibes: ['cute'], fit: ['waist', 'feminine'],
+    stylistNote: 'A white collar on navy: preppy and polished with tights and tall boots.' },
+
+  { id: 'pp-pink-suede-bag',
+    name: 'Hotshot Faux Suede Shoulder Bag Dusty Pink',
+    retailer: 'princesspolly', price: 22.50,
+    url: 'https://us.princesspolly.com/products/hotshot-faux-suede-shoulder-bag-dusty-pink',
+    imageUrl: 'https://us.princesspolly.com/cdn/shop/files/Hotshot-Faux-Suede-Shoulder-Bag-Dusty-Pink_458c2a7f-931a-4f97-8653-9fa3346afa06.jpg?v=1784072473', imageUrl2: '',
+    category: 'accessories', sub: 'bag', color: 'cool-blush', sizes: [],
+    occasions: ['everyday', 'meeting', 'friday', 'dressy'], vibes: [], fit: [],
+    stylistNote: 'A dusty pink shoulder bag for the pink and navy looks.' },
+
+  { id: 'cider-fuzzy-laceup-boots',
+    name: 'Lace-Up Faux Suede & Fuzzy Ankle Boots — Tan',
+    retailer: 'cider', price: 62.90,
+    url: 'https://www.shopcider.com/goods/lace-up-faux-suede-fuzzy-ankle-boots-114822430?style_id=2191568',
+    imageUrl: 'https://img1.shopcider.com/product/1754620605000-N6zp54.jpg', imageUrl2: 'https://img1.shopcider.com/product/1762400647000-5847DX.jpg',
+    category: 'shoes', kind: 'Cozy boots', color: 'tan', sizes: ['36', '37', '38', '39', '40', '41'],
+    occasions: ['friday', 'everyday'], vibes: ['cozy', 'cute'], fit: ['feminine', 'winter'],
+    stylistNote: 'A cozy tan winter boot with fuzzy trim. Best with jeans or tights on casual days.' }
 ];
